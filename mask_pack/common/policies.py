@@ -89,12 +89,14 @@ class CustomActorCriticPolicy(BasePolicy):
         network: Union[str, Type[BaseNetwork]] = CnnMlpNetwork1,
         network_kwargs: Optional[Dict[str, Any]] = None,
         dist_kwargs: Optional[Dict[str, Any]] = None,
+        mask_type: str = "truth",
     ):
         if isinstance(network, str):
             self.network_class = self._get_network_from_name(network)
         else:
             self.network_class = network
         self.network_kwargs = network_kwargs
+        self.mask_type = mask_type
 
         if optimizer_kwargs is None:
             optimizer_kwargs = {}
@@ -202,6 +204,26 @@ class CustomActorCriticPolicy(BasePolicy):
         # Setup optimizer with initial learning rate
         self.optimizer = self.optimizer_class(self.parameters(), lr=lr_schedule(1), **self.optimizer_kwargs)  # type: ignore[call-arg]
 
+    def binary(self, input:th.Tensor):
+        """
+        Convert input tensor to binary tensor.\n
+        If the value of input tensor is greater than 0.5, the output tensor will be 1, otherwise 0.\n
+
+        Parameters
+        ----------
+        input : torch.Tensor
+            The input tensor
+        
+        Returns
+        -------
+        out: torch.Tensor
+            The binary tensor
+        """
+        a = th.ones_like(input)
+        b = th.zeros_like(input)
+        output = th.where(input >= 0.5, a, b)
+        return output
+    
     def forward(self, obs: th.Tensor, deterministic: bool = False) -> Tuple[th.Tensor, th.Tensor, th.Tensor, th.Tensor]:
         """
         Forward pass in all the networks (actor and critic)
@@ -212,7 +234,11 @@ class CustomActorCriticPolicy(BasePolicy):
         """
         obs = preprocess_obs(obs, self.observation_space, normalize_images=self.normalize_images)
         mask_probs, action_logits, values = self.network(obs[BIN])
-        distribution = self._get_action_dist_from_latent(action_logits, obs[MASK])
+        pred_mask = self.binary(mask_probs)
+        if self.mask_type == "truth":
+            distribution = self._get_action_dist_from_latent(action_logits, obs[MASK])
+        elif self.mask_type == "predict":
+            distribution = self._get_action_dist_from_latent(action_logits, pred_mask)
         actions = distribution.get_actions(deterministic=deterministic)
         log_probs = distribution.log_prob(actions)
         actions = actions.reshape((-1, *self.action_space.shape))
@@ -272,8 +298,12 @@ class CustomActorCriticPolicy(BasePolicy):
         :return: Taken action according to the policy
         """
         obs = preprocess_obs(observation, self.observation_space, normalize_images=self.normalize_images)
-        _, action_logits, _ = self.network(obs[BIN])
-        distribution = self._get_action_dist_from_latent(action_logits, obs[MASK])
+        mask_probs, action_logits, values = self.network(obs[BIN])
+        pred_mask = self.binary(mask_probs)
+        if self.mask_type == "truth":
+            distribution = self._get_action_dist_from_latent(action_logits, obs[MASK])
+        elif self.mask_type == "predict":
+            distribution = self._get_action_dist_from_latent(action_logits, pred_mask)
         return distribution.get_actions(deterministic=deterministic)
 
     def evaluate_actions(self, obs: PyTorchObs, actions: th.Tensor) -> Tuple[th.Tensor, th.Tensor, Optional[th.Tensor]]:
@@ -288,37 +318,36 @@ class CustomActorCriticPolicy(BasePolicy):
         """
         obs = preprocess_obs(obs, self.observation_space, normalize_images=self.normalize_images)
         mask_probs, action_logits, values = self.network(obs[BIN])
+        pred_mask = self.binary(mask_probs)
 
         if self.action_dist.update_actor_stratrgy == "naive":
             distribution = self._get_action_dist_from_latent(action_logits, mask=None)
         elif self.action_dist.update_actor_stratrgy == "masked":
-            distribution = self._get_action_dist_from_latent(action_logits, mask=obs[MASK])
+            if self.mask_type == "truth":
+                distribution = self._get_action_dist_from_latent(action_logits, obs[MASK])
+            elif self.mask_type == "predict":
+                distribution = self._get_action_dist_from_latent(action_logits, pred_mask)
         log_prob = distribution.log_prob(actions)
 
         if self.action_dist.entropy_strategy == "naive":
             distribution = self._get_action_dist_from_latent(action_logits, mask=None)
         elif self.action_dist.entropy_strategy == "masked":
-            distribution = self._get_action_dist_from_latent(action_logits, mask=obs[MASK])
+            if self.mask_type == "truth":
+                distribution = self._get_action_dist_from_latent(action_logits, obs[MASK])
+            elif self.mask_type == "predict":
+                distribution = self._get_action_dist_from_latent(action_logits, pred_mask)
         entropy = distribution.entropy()
 
         if self.action_dist.invalid_probs_strategy == "naive":
             distribution = self._get_action_dist_from_latent(action_logits, mask=None)
         elif self.action_dist.invalid_probs_strategy == "masked":
-            distribution = self._get_action_dist_from_latent(action_logits, mask=obs[MASK])
+            if self.mask_type == "truth":
+                distribution = self._get_action_dist_from_latent(action_logits, obs[MASK])
+            elif self.mask_type == "predict":
+                distribution = self._get_action_dist_from_latent(action_logits, pred_mask)
         invalid_probs = (distribution.distribution.probs * (1 - obs[MASK])).sum(dim=-1)
 
         return values, log_prob, entropy, invalid_probs
-
-    def get_distribution(self, obs: PyTorchObs) -> Distribution:
-        """
-        Get the current policy distribution given the observations.
-
-        :param obs:
-        :return: the action distribution.
-        """
-        obs = preprocess_obs(obs, self.observation_space, normalize_images=self.normalize_images)
-        action_logits = self.network.forward_action_logits(obs[BIN])
-        return self._get_action_dist_from_latent(action_logits, obs[MASK])
 
     def predict_values(self, obs: PyTorchObs) -> th.Tensor:
         """

@@ -107,7 +107,9 @@ class CnnMlpNetwork1(BaseNetwork):
             nn.ReLU(),
             (nn.Conv2d(16, 16, kernel_size=(3,3), stride=1, padding=1)),
             nn.ReLU(),
-            (nn.Conv2d(16, share_out_channels, kernel_size=(3,3), stride=1, padding=1)),
+            (nn.Conv2d(16, 32, kernel_size=(3,3), stride=1, padding=1)),
+            nn.ReLU(),
+            (nn.Conv2d(32, share_out_channels, kernel_size=(3,3), stride=1, padding=1)),
             nn.ReLU(),
         )
 
@@ -261,6 +263,8 @@ class CnnMlpNetwork3(BaseNetwork):
             nn.ReLU(),
             (nn.Conv2d(16, 32, kernel_size=(3,3), stride=1, padding=1)),
             nn.ReLU(),
+            (nn.Conv2d(32, 32, kernel_size=(3,3), stride=1, padding=1)),
+            nn.ReLU(),
             (nn.Conv2d(32, share_out_channels, kernel_size=(3,3), stride=1, padding=1)),
             nn.ReLU(),
         )
@@ -384,3 +388,4 @@ class CnnMlpNetwork4(BaseNetwork):
         self.critic_net = nn.Sequential(
             (nn.Linear(self.hidden_dim//2, 1))
         )
+        
