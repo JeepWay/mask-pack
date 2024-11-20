@@ -4,6 +4,7 @@ import gymnasium as gym
 from gymnasium import spaces
 import matplotlib.pyplot as plt
 import numpy as np
+from scipy.ndimage import label
 
 from mask_pack.common.constants import BIN, MASK
 from envs.bpp.creator import ItemsCreator
@@ -29,6 +30,7 @@ class BppEnv(gym.Env):
         area_reward_coef: float = 0.4,
         constant_penalty: float = -5.0,
         action_fail: str = "continue",
+        reward_type: str = "area",
     ):
         self.render_mode = render_mode
         self.bin_w = bin_w
@@ -48,6 +50,7 @@ class BppEnv(gym.Env):
         self.area_reward_coef = area_reward_coef
         self.constant_penalty = constant_penalty
         self.action_fail = action_fail
+        self.reward_type = reward_type
 
     def step(
         self, 
@@ -88,7 +91,10 @@ class BppEnv(gym.Env):
         is_success = self.bin.put_item(self._get_next_item(), idx)
 
         if is_success:
-            reward = self.area_reward_coef * self._get_next_item_area()
+            if self.reward_type == "area":
+                reward = self.area_reward_coef * self._get_next_item_area()
+            elif self.reward_type == "compactness":
+                reward = self._compute_compactness_reward(action=idx)
             terminated = False
         else:
             reward = self.constant_penalty
@@ -254,6 +260,27 @@ class BppEnv(gym.Env):
                 if np.all(current_bin[x:x+item_width, y:y+item_height] == 1):
                     action_mask[(self.bin_h * x) + y] = 1  # valid action
         return action_mask
+
+    def _compute_compactness_reward(self, action: int) -> float:
+        """
+        Reward function based on the compactness of the cluster used in Deep-Pack.\n
+        Paper: https://ieeexplore.ieee.org/document/8956393\n
+        Source code: https://github.com/JeepWay/DeepPack\n
+        """
+        lx, ly = self.bin.index_to_location(action)
+        state_np = (1 - self.bin.get_bin())
+        labeled_array, num_features = label(state_np, structure=np.array([[0,1,0],[1,1,1],[0,1,0]]))
+        cluster_sizes = np.bincount(labeled_array.ravel())
+        item_label = labeled_array[lx][ly]
+        cluster_size = cluster_sizes[item_label]
+        cluster_indices = np.argwhere(labeled_array == item_label)
+        top_left = cluster_indices.min(axis=0)
+        bottom_right = cluster_indices.max(axis=0)
+        bounding_box_size = (bottom_right[0] - top_left[0] + 1) * (bottom_right[1] - top_left[1] + 1)
+        # compute compactness
+        compactness = cluster_size / bounding_box_size
+        reward = cluster_size * compactness
+        return reward
 
     def bin2image(
         self, 
