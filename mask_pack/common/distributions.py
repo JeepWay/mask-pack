@@ -59,12 +59,12 @@ class CategoricalDistribution(Distribution):
             if self.mask_strategy == "minus":
                 m_action_logits = action_logits - self.mask_minus_coef * inver_mask
                 lx = F.softmax(m_action_logits, dim=-1)
-                lx = lx + 1e-5
+                lx = th.clamp(lx, min=1e-10)            # avoid nan, don't use add operation
                 self.distribution = Categorical(probs=lx)
             elif self.mask_strategy == "replace":
-                m_action_logits = th.masked_fill(action_logits, inver_mask.bool(), self.mask_replace_coef)
+                m_action_logits = th.where(mask.bool(), action_logits, th.tensor(self.mask_replace_coef))
                 lx = F.softmax(m_action_logits, dim=-1)
-                lx = lx + 1e-5
+                lx = th.clamp(lx, min=1e-10)            # avoid nan, don't use add operation
                 self.distribution = Categorical(probs=lx)
             else:
                 raise ValueError(f"mask_strategy {self.mask_strategy} is not supported")
