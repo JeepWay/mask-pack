@@ -10,17 +10,27 @@ from pprint import pprint
 import warnings
 warnings.filterwarnings("ignore", category=DeprecationWarning, module='gymnasium.envs.registration')
 
+import wandb
+from wandb.integration.sb3 import WandbCallback
+from stable_baselines3.common.callbacks import CallbackList
 from stable_baselines3.common.env_util import make_vec_env
 from stable_baselines3.common.utils import get_system_info
 
 from envs.register import registration_envs
-from mask_pack import PPO
+from mask_pack import PPO, ACKTR
 from mask_pack.common.evaluation import evaluate_policy
 from mask_pack.common.callbacks import MetricsCallback
 
 
 def train(config: Dict[str, Any]):
     print(f"\n{'-' * 30}   Start Training   {'-' * 30}\n")
+    run = wandb.init(
+        project=config["env_id"],
+        name=config['save_path'].split("2DBpp-")[1],
+        config=config,
+        sync_tensorboard=True,  # auto-upload sb3's tensorboard metrics
+        resume = None,
+    )
     vec_env = make_vec_env(
         config["env_id"], 
         n_envs=config["n_envs"], 
@@ -28,10 +38,29 @@ def train(config: Dict[str, Any]):
         monitor_kwargs=config["monitor_kwargs"],
         env_kwargs=config["env_kwargs"],
     )
-    model = PPO(env=vec_env, **config["PPO_kwargs"], tensorboard_log=config['save_path'])
-    model.learn(total_timesteps=config["total_timesteps"], progress_bar=True, callback=MetricsCallback(config['save_path']))
+    if "PPO" in config['save_path']:
+        model = PPO(env=vec_env, **config["PPO_kwargs"], tensorboard_log=config['save_path'])
+        model.learn(
+            total_timesteps=config["total_timesteps"], 
+            progress_bar=True, 
+            callback=CallbackList([
+                MetricsCallback(config['save_path']),
+                WandbCallback(verbose=config['PPO_kwargs']['verbose']),
+            ])
+        )
+    elif "ACKTR" in config['save_path']:
+        model = ACKTR(env=vec_env, **config["ACKTR_kwargs"], tensorboard_log=config['save_path'])
+        model.learn(
+            total_timesteps=config["total_timesteps"], 
+            progress_bar=True, 
+            callback=CallbackList([
+                MetricsCallback(config['save_path']),
+                WandbCallback(verbose=config['ACKTR_kwargs']['verbose']),
+            ])
+        )
     print(f"Training finished. Model saved at {config['save_path']}")
     model.save(os.path.join(config['save_path'], config["env_id"]))
+    run.finish()
     print(f"\n{'-' * 30}   Complete Training   {'-' * 30}\n")
 
 
@@ -47,7 +76,10 @@ def test(config: Dict[str, Any]):
             env_kwargs=config["env_kwargs"],
         )
         # must pass config["PPO_kwargs"] to reset the `self.clip_range` to the constant
-        model = PPO.load(os.path.join(config['test_dir'], config["env_id"]), **config["PPO_kwargs"])
+        if "PPO" in config['test_dir']:
+            model = PPO.load(os.path.join(config['test_dir'], config["env_id"]), **config["PPO_kwargs"])
+        elif "ACKTR" in config['test_dir']:
+            model = ACKTR.load(os.path.join(config['test_dir'], config["env_id"]), **config["ACKTR_kwargs"])
         episode_rewards, _, episode_PEs = evaluate_policy(
             model, eval_env, 
             n_eval_episodes=config["n_eval_episodes"], 
@@ -70,8 +102,8 @@ def test(config: Dict[str, Any]):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="2D Mask BPP with PPO")
-    parser.add_argument('--config_path', default="settings/v1_1-1.yaml", type=str, help="Path to the configuration file with .yaml extension.")
+    parser = argparse.ArgumentParser(description="2D Mask BPP with PPO and ACKTR")
+    parser.add_argument('--config_path', default="settings/v1_PPO-h200-c02-n64-b32-R15-k1-rA.yaml", type=str, help="Path to the configuration file with .yaml extension.")
     parser.add_argument('--mode', default="both", type=str, choices=["train", "test", "both"], help="Mode to train or test or both of them.")
     parser.add_argument('--test_dir', default=None, type=str, help="Path to the directory where the model is saved for testing.")
     args = parser.parse_args()
@@ -86,7 +118,7 @@ if __name__ == "__main__":
         config = yaml.load(file, Loader=yaml.UnsafeLoader)
 
     # set `save_path` according to the name of the .yaml file
-    config['save_path'] = os.path.join(config["log_dir"], 
+    config['save_path'] = os.path.join(config['log_dir'], 
         f"{config['env_id']}_{args.config_path.split('/')[1][len('v0_'):-len('.yaml')]}"                 
     )
 
@@ -94,7 +126,7 @@ if __name__ == "__main__":
     if args.mode == "both":
         config['test_dir'] = config['save_path']
     elif args.mode == "test":
-        config['test_dir'] = f"logs/ppo/{args.test_dir}"
+        config['test_dir'] = f"{config['log_dir']}/{args.test_dir}"
 
     if args.mode == "both" or args.mode == "train":
         os.makedirs(config['save_path'], exist_ok=True)
@@ -129,4 +161,3 @@ if __name__ == "__main__":
         test(config)
     else:
         raise ValueError("Invalid mode, please select either 'train' or 'test' or 'both'")
-
