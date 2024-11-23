@@ -5,6 +5,7 @@ import numpy as np
 import torch as th
 from gymnasium import spaces
 from torch.nn import functional as F
+th.backends.cuda.preferred_linalg_library("magma")
 
 # from stable_baselines3.common.buffers import RolloutBuffer
 # from stable_baselines3.common.on_policy_algorithm import OnPolicyAlgorithm
