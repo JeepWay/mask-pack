@@ -6,7 +6,6 @@ from gymnasium import spaces
 import torch as th
 from torch import nn
 from torch.distributions import Categorical
-import torch.nn.functional as F
 from stable_baselines3.common.distributions import Distribution
 
 SelfCategoricalDistribution = TypeVar("SelfCategoricalDistribution", bound="CategoricalDistribution")
@@ -58,14 +57,10 @@ class CategoricalDistribution(Distribution):
             inver_mask = 1 - mask
             if self.mask_strategy == "minus":
                 m_action_logits = action_logits - self.mask_minus_coef * inver_mask
-                lx = F.softmax(m_action_logits, dim=-1)
-                lx = th.clamp(lx, min=1e-9)            # avoid nan, don't use add operation
-                self.distribution = Categorical(probs=lx)
+                self.distribution = Categorical(logits=m_action_logits)
             elif self.mask_strategy == "replace":
                 m_action_logits = th.where(mask.bool(), action_logits, th.tensor(self.mask_replace_coef))
-                lx = F.softmax(m_action_logits, dim=-1)
-                lx = th.clamp(lx, min=1e-9)            # avoid nan, don't use add operation
-                self.distribution = Categorical(probs=lx)
+                self.distribution = Categorical(logits=m_action_logits)
             else:
                 raise ValueError(f"mask_strategy {self.mask_strategy} is not supported")
         return self

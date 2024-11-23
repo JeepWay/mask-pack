@@ -42,3 +42,5 @@ pip install stable-baselines3==2.3.2
 pip install tensorboard==2.18.0
 pip install rl_zoo3==2.3.0
 pip install pyyaml
+pip install scipy==1.13.0
+pip install wandb==0.18.7

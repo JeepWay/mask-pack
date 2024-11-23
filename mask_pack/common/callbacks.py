@@ -37,7 +37,8 @@ class MetricsCallback(BaseCallback):
             "clip_fraction",
             "clip_range",
             "learning_rate",
-            "explained_variance",)
+            "explained_variance",
+            "n_updates",)
         )
         self.metrics_logger.writeheader()
         self.file_handler.flush()
@@ -61,6 +62,7 @@ class MetricsCallback(BaseCallback):
             "clip_range": self.logger.name_to_value['train/clip_range'], 
             "learning_rate": self.logger.name_to_value['train/learning_rate'], 
             "explained_variance": self.logger.name_to_value['train/explained_variance'], 
+            "n_updates": self.logger.name_to_value['train/n_updates'],
         }
         self.metrics_logger.writerow(metrics)
         self.file_handler.flush()
