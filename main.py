@@ -40,6 +40,9 @@ def train(config: Dict[str, Any]):
     )
     if "PPO" in config['save_path']:
         model = PPO(env=vec_env, **config["PPO_kwargs"], tensorboard_log=config['save_path'])
+        with open(os.path.join(config['save_path'], "model.txt"), "w") as f:
+            f.write(f"PPO's network architecture: \n{str(model.policy)}\n")
+            f.write(f"\nPPO's number of parameters: {sum(p.numel() for p in model.policy.parameters())}\n")
         model.learn(
             total_timesteps=config["total_timesteps"], 
             progress_bar=True, 
@@ -50,6 +53,9 @@ def train(config: Dict[str, Any]):
         )
     elif "ACKTR" in config['save_path']:
         model = ACKTR(env=vec_env, **config["ACKTR_kwargs"], tensorboard_log=config['save_path'])
+        with open(os.path.join(config['save_path'], "model.txt"), "w") as f:
+            f.write(f"ACKTR's network architecture: \n{str(model.policy)}\n")
+            f.write(f"\nACKTR's number of parameters: {sum(p.numel() for p in model.policy.parameters())}\n")
         model.learn(
             total_timesteps=config["total_timesteps"], 
             progress_bar=True, 
@@ -60,7 +66,7 @@ def train(config: Dict[str, Any]):
         )
     print(f"Training finished. Model saved at {config['save_path']}")
     model.save(os.path.join(config['save_path'], config["env_id"]))
-    run.finish()
+    # run.finish()
     print(f"\n{'-' * 30}   Complete Training   {'-' * 30}\n")
 
 
@@ -107,8 +113,6 @@ if __name__ == "__main__":
     parser.add_argument('--mode', default="both", type=str, choices=["train", "test", "both"], help="Mode to train or test or both of them.")
     parser.add_argument('--test_dir', default=None, type=str, help="Path to the directory where the model is saved for testing.")
     args = parser.parse_args()
-    if args.mode == "test" and args.test_dir is None:
-        raise ValueError("Please specify the directory to test when using the test mode.")
     if not args.config_path.endswith(".yaml"):
         raise ValueError("Please specify the path to the configuration file with a .yaml extension.")
 
@@ -126,7 +130,7 @@ if __name__ == "__main__":
     if args.mode == "both":
         config['test_dir'] = config['save_path']
     elif args.mode == "test":
-        config['test_dir'] = f"{config['log_dir']}/{args.test_dir}"
+        config['test_dir'] = config['save_path']
 
     if args.mode == "both" or args.mode == "train":
         os.makedirs(config['save_path'], exist_ok=True)
