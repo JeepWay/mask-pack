@@ -1,0 +1,15 @@
+__pycache__
+backup/
+logs/
+stable_baselines3/
+rl_zoo3/
+wandb/
+
+modify.bat
+test.png
+result.xlsx
+formatted_result.csv
+2DBpp*
+
+*.sh
+!/scripts/*.sh

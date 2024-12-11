@@ -111,7 +111,6 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="2D Mask BPP with PPO and ACKTR")
     parser.add_argument('--config_path', default="settings/v1_PPO-h200-c02-n64-b32-R15-k1-rA.yaml", type=str, help="Path to the configuration file with .yaml extension.")
     parser.add_argument('--mode', default="both", type=str, choices=["train", "test", "both"], help="Mode to train or test or both of them.")
-    parser.add_argument('--test_dir', default=None, type=str, help="Path to the directory where the model is saved for testing.")
     args = parser.parse_args()
     if not args.config_path.endswith(".yaml"):
         raise ValueError("Please specify the path to the configuration file with a .yaml extension.")
