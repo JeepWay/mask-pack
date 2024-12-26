@@ -122,7 +122,7 @@ if __name__ == "__main__":
 
     # set `save_path` according to the name of the .yaml file
     config['save_path'] = os.path.join(config['log_dir'], 
-        f"{config['env_id']}_{args.config_path.split('/')[1][len('v0_'):-len('.yaml')]}"                 
+        f"{config['env_id']}_{args.config_path.split('/')[-1][len('v1_'):-len('.yaml')]}"                 
     )
 
     # set test_dir according to the mode
