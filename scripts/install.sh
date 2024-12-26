@@ -1,12 +1,12 @@
 #!/bin/bash
-#bash install.sh -c 0
-#bash install.sh -c 11.8
+#bash scripts/install.sh -c 0
+#bash scripts/install.sh -c 11.8
 
 . ~/miniconda3/etc/profile.d/conda.sh
-conda deactivate
-conda activate base
-echo Y | conda create -n MaskPack python=3.9.15
-conda activate MaskPack
+echo Y | conda create -n maskpack python=3.9.15
+sleep 3
+conda activate maskpack
+sleep 1
 
 supported_cuda_versions=(false, 0, 11.8)
 while getopts ":c:" opt; do
@@ -32,15 +32,15 @@ done
 
 if [[ "${cuda}" == "false" || "${cuda}" == "0" ]] ; then
     echo "Install PyTorch with cpu version."
-    pip3 install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
+    pip3 install torch==2.4.1 torchvision==0.19.1 torchaudio==2.4.1 --index-url https://download.pytorch.org/whl/cpu
 else
     echo "Install PyTorch with cuda ${cuda} version."
-    pip3 install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
+    pip3 install torch==2.4.1 torchvision==0.19.1 torchaudio==2.4.1 --index-url https://download.pytorch.org/whl/cu118
 fi
 
-pip install stable-baselines3==2.3.2
+pip install stable-baselines3[extra]==2.3.2
 pip install tensorboard==2.18.0
-pip install rl_zoo3==2.3.0
-pip install pyyaml
+pip install pyyaml==6.0.2
 pip install scipy==1.13.0
 pip install wandb==0.18.7
+pip install numpy==1.26.3
