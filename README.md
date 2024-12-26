@@ -35,7 +35,7 @@ make docker-gpu
 ### Run the images (CPU/GPU)
 Run the nvidia-container-toolkit GPU image
 ```bash
-docker run -it --rm --gpus=all --network host --ipc=host --mount src=$(pwd),target=/home/user/maskpack,type=bind jeepway/maskpack-gpu:latest bash -c "cd /home/user/maskpack && ls && pwd && /bin/bash"
+docker run -it --rm --gpus=all --volume $(pwd):/home/user/maskpack jeepway/maskpack-gpu:latest bash -c "cd /home/user/maskpack && ls && pwd && /bin/bash"
 ```
 Or, use make command to run with the shell file
 ```bash
@@ -43,7 +43,7 @@ make docker-run-gpu
 ```
 Run the docker CPU image
 ```bash
-docker run -it --rm --network host --ipc=host --mount src=$(pwd),target=/home/user/maskpack,type=bind jeepway/maskpack-cpu:latest bash -c "cd /home/user/maskpack && ls && pwd && /bin/bash"
+docker run -it --rm --volume $(pwd):/home/user/maskpack jeepway/maskpack-cpu:latest bash -c "cd /home/user/maskpack && ls && pwd && /bin/bash"
 ```
 Or, use make command to run with the shell file
 ```bash
