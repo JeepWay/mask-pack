@@ -85,7 +85,7 @@ class CnnMlpNetwork1(BaseNetwork):
         action_dim: int,
         hidden_dim: int,
         normalize_images: bool = False,
-        share_out_channels: int = 32,
+        share_out_channels: int = 64,
         mask_out_channels: int = 8,
         actor_out_channels: int = 8,
         critic_out_channels: int = 4,
@@ -103,13 +103,15 @@ class CnnMlpNetwork1(BaseNetwork):
         self.critic_out_channels = critic_out_channels
 
         self.share_extractor = nn.Sequential(
-            (nn.Conv2d(self.share_input_channels, 16, kernel_size=(3,3), stride=1, padding=1)),
+            (nn.Conv2d(self.share_input_channels, 64, kernel_size=(3,3), stride=1, padding=1)),
             nn.ReLU(),
-            (nn.Conv2d(16, 16, kernel_size=(3,3), stride=1, padding=1)),
+            (nn.Conv2d(64, 64, kernel_size=(3,3), stride=1, padding=1)),
             nn.ReLU(),
-            (nn.Conv2d(16, 32, kernel_size=(3,3), stride=1, padding=1)),
+            (nn.Conv2d(64, 64, kernel_size=(3,3), stride=1, padding=1)),
             nn.ReLU(),
-            (nn.Conv2d(32, share_out_channels, kernel_size=(3,3), stride=1, padding=1)),
+            (nn.Conv2d(64, 64, kernel_size=(3,3), stride=1, padding=1)),
+            nn.ReLU(),
+            (nn.Conv2d(64, share_out_channels, kernel_size=(3,3), stride=1, padding=1)),
             nn.ReLU(),
         )
 
@@ -162,7 +164,7 @@ class CnnMlpNetwork2(BaseNetwork):
         action_dim: int,
         hidden_dim: int,
         normalize_images: bool = False,
-        share_out_channels: int = 32,
+        share_out_channels: int = 64,
         mask_out_channels: int = 8,
         actor_out_channels: int = 8,
         critic_out_channels: int = 4,
@@ -180,13 +182,15 @@ class CnnMlpNetwork2(BaseNetwork):
         self.critic_out_channels = critic_out_channels
 
         self.share_extractor = nn.Sequential(
-            (nn.Conv2d(self.share_input_channels, 16, kernel_size=(3,3), stride=1, padding=1)),
+            (nn.Conv2d(self.share_input_channels, 64, kernel_size=(3,3), stride=1, padding=1)),
             nn.ReLU(),
-            (nn.Conv2d(16, 16, kernel_size=(3,3), stride=1, padding=1)),
+            (nn.Conv2d(64, 64, kernel_size=(3,3), stride=1, padding=1)),
             nn.ReLU(),
-            (nn.Conv2d(16, 32, kernel_size=(3,3), stride=1, padding=1)),
+            (nn.Conv2d(64, 64, kernel_size=(3,3), stride=1, padding=1)),
             nn.ReLU(),
-            (nn.Conv2d(32, share_out_channels, kernel_size=(3,3), stride=1, padding=1)),
+            (nn.Conv2d(64, 64, kernel_size=(3,3), stride=1, padding=1)),
+            nn.ReLU(),
+            (nn.Conv2d(64, share_out_channels, kernel_size=(3,3), stride=1, padding=1)),
             nn.ReLU(),
         )
 
@@ -239,7 +243,7 @@ class CnnMlpNetwork3(BaseNetwork):
         action_dim: int,
         hidden_dim: int,
         normalize_images: bool = False,
-        share_out_channels: int = 32,
+        share_out_channels: int = 64,
         mask_out_channels: int = 8,
         actor_out_channels: int = 8,
         critic_out_channels: int = 4,
@@ -257,15 +261,15 @@ class CnnMlpNetwork3(BaseNetwork):
         self.critic_out_channels = critic_out_channels
 
         self.share_extractor = nn.Sequential(
-            (nn.Conv2d(self.share_input_channels, 16, kernel_size=(3,3), stride=1, padding=1)),
+            (nn.Conv2d(self.share_input_channels, 64, kernel_size=(3,3), stride=1, padding=1)),
             nn.ReLU(),
-            (nn.Conv2d(16, 16, kernel_size=(3,3), stride=1, padding=1)),
+            (nn.Conv2d(64, 64, kernel_size=(3,3), stride=1, padding=1)),
             nn.ReLU(),
-            (nn.Conv2d(16, 32, kernel_size=(3,3), stride=1, padding=1)),
+            (nn.Conv2d(64, 64, kernel_size=(3,3), stride=1, padding=1)),
             nn.ReLU(),
-            (nn.Conv2d(32, 32, kernel_size=(3,3), stride=1, padding=1)),
+            (nn.Conv2d(64, 64, kernel_size=(3,3), stride=1, padding=1)),
             nn.ReLU(),
-            (nn.Conv2d(32, share_out_channels, kernel_size=(3,3), stride=1, padding=1)),
+            (nn.Conv2d(64, share_out_channels, kernel_size=(3,3), stride=1, padding=1)),
             nn.ReLU(),
         )
 
@@ -318,7 +322,7 @@ class CnnMlpNetwork4(BaseNetwork):
         action_dim: int,
         hidden_dim: int,
         normalize_images: bool = False,
-        share_out_channels: int = 32,
+        share_out_channels: int = 64,
         mask_out_channels: int = 8,
         actor_out_channels: int = 8,
         critic_out_channels: int = 4,
@@ -336,15 +340,15 @@ class CnnMlpNetwork4(BaseNetwork):
         self.critic_out_channels = critic_out_channels
 
         self.share_extractor = nn.Sequential(
-            (nn.Conv2d(self.share_input_channels, 16, kernel_size=(3,3), stride=1, padding=1)),
+            (nn.Conv2d(self.share_input_channels, 64, kernel_size=(3,3), stride=1, padding=1)),
             nn.ReLU(),
-            (nn.Conv2d(16, 16, kernel_size=(3,3), stride=1, padding=1)),
+            (nn.Conv2d(64, 64, kernel_size=(3,3), stride=1, padding=1)),
             nn.ReLU(),
-            (nn.Conv2d(16, 32, kernel_size=(3,3), stride=1, padding=1)),
+            (nn.Conv2d(64, 64, kernel_size=(3,3), stride=1, padding=1)),
             nn.ReLU(),
-            (nn.Conv2d(32, 32, kernel_size=(3,3), stride=1, padding=1)),
+            (nn.Conv2d(64, 64, kernel_size=(3,3), stride=1, padding=1)),
             nn.ReLU(),
-            (nn.Conv2d(32, share_out_channels, kernel_size=(3,3), stride=1, padding=1)),
+            (nn.Conv2d(64, share_out_channels, kernel_size=(3,3), stride=1, padding=1)),
             nn.ReLU(),
         )
 
