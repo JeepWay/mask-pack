@@ -6,10 +6,14 @@ rl_zoo3/
 wandb/
 
 modify.bat
-test.png
-result.xlsx
+*.xlsx
 formatted_result.csv
 2DBpp*
 
 *.sh
 !/scripts/*.sh
+
+*.png
+*.jpg
+!img/*.png
+!img/*.jpg
