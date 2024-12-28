@@ -2,6 +2,8 @@ import os
 import yaml
 import csv
 import math
+import matplotlib.pyplot as plt
+import numpy as np
 
 def formatted_result(dir: str) -> None: 
     """
@@ -20,23 +22,47 @@ def formatted_result(dir: str) -> None:
             order2 = 1
         elif 'ACKTR' in x:
             order2 = 2
+        elif 'DQN' in x:
+            order2 = 3
+
         order3= int(x.split('-h')[1].split('-')[0])
-        order4 = int(x.split('-c')[1].split('-')[0])
-        order5 = int(x.split('-n')[1].split('-')[0])
-        order6 = int(x.split('-b')[1].split('-')[0])
+
+        if '-c' in x:
+            order4 = int(x.split('-c')[1].split('-')[0])
+        else:
+            order4 = 0
+        
+        if '-n' in x:
+            order5 = int(x.split('-n')[1].split('-')[0])
+        else:
+            order5 = 0
+
+        if '-b' in x:
+            order6 = int(x.split('-b')[1].split('-')[0])
+        else:
+            order6 = 0
+
         if '-M' in x:
             order8 = 1
             if '-Me' in x: 
-                order7 = int(math.pow(10, int(x.split('-Me')[1])))
+                order7 = int(math.pow(10, int(x.split('-Me')[1].split('-')[0])))
             else:
-                order7 = int(x.split('-M')[1]) 
+                order7 = int(x.split('-M')[1].split('-')[0]) 
         elif '-R' in x:
             order8 = 2
             if '-Re' in x: 
-                order7 = int(math.pow(10, int(x.split('-Re')[1])))
+                order7 = int(math.pow(10, int(x.split('-Re')[1].split('-')[0])))
             else:
-                order7 = int(x.split('-R')[1]) 
-        order9= int(x.split('-k')[1].split('-')[0])
+                order7 = int(x.split('-R')[1].split('-')[0])
+        else:
+            order7 = 0
+            order8 = 0
+        
+        if '-k' in x:
+            order9= int(x.split('-k')[1].split('-')[0])
+        else:
+            order9 = 0
+
         if 'rA' in x:
             order10 = 1
         elif 'rC' in x:
@@ -211,9 +237,45 @@ def copy_file2(dir: str) -> None:
     for destination_file in destination_files:
         shutil.copy(os.path.join(dir, source_file), os.path.join(dir, destination_file))
 
+
+def __plot_mask_diff_strategy_coef(location, title: str, acc_replace: list, acc_minus: list):
+    x_labels = ["0", "7", "15", "30", "50", "100", "500", "1.0E+03", "1.0E+04", "1.0E+05", "1.0E+06", "1.0E+07", "1.0E+08"]
+    x_positions = np.arange(len(x_labels))
+    y_replace = acc_replace
+    y_minus = acc_minus
+    plt.subplot(location)
+    plt.plot(x_positions, y_replace, marker='o', markersize=8, label="Replace", color='red')
+    plt.plot(x_positions, y_minus, marker='^', markersize=8, label="Minus", color='royalblue')
+    plt.title(title, fontsize=16)
+    plt.xlabel("coefficient", fontsize=12)
+    plt.ylabel("PE", fontsize=12)
+    plt.xticks(x_positions, x_labels, rotation=45)
+    plt.legend()
+    plt.tight_layout()
+    
+
+def plot_all_mask_diff_strategy_coef():
+    plt.figure(figsize=(12, 8))
+    replace_40x40 = [80, 85, 85, 84, 83, 83, 82, 82, 82, 82, 82, 82, 82]
+    minus_40x40 = [0, 50, 80, 85, 85, 85, 85, 83, 83, 81, 78, 75, 73]
+    __plot_mask_diff_strategy_coef(221, "(a) 10 x 10", replace_40x40, minus_40x40)
+    replace_40x40 = [80, 85, 85, 84, 83, 83, 82, 82, 82, 82, 82, 82, 82]
+    minus_40x40 = [0, 50, 80, 85, 85, 85, 85, 83, 83, 81, 78, 75, 73]
+    __plot_mask_diff_strategy_coef(222, "(b) 20 x 20", replace_40x40, minus_40x40)
+    replace_40x40 = [80, 85, 85, 84, 83, 83, 82, 82, 82, 82, 82, 82, 82]
+    minus_40x40 = [0, 50, 80, 85, 85, 85, 85, 83, 83, 81, 78, 75, 73]
+    __plot_mask_diff_strategy_coef(223, "(c) 40 x 40", replace_40x40, minus_40x40)
+    replace_40x40 = [80, 85, 85, 84, 83, 83, 82, 82, 82, 82, 82, 82, 82]
+    minus_40x40 = [0, 50, 80, 85, 85, 85, 85, 83, 83, 81, 78, 75, 73]
+    __plot_mask_diff_strategy_coef(224, "(d) 32 x 50", replace_40x40, minus_40x40)
+    plt.savefig(f"img/PE_diff_mask_type_coef.png")
+
+
 if __name__ == "__main__":
     # $ tensorboard --logdir backup/diff_mask
-    # formatted_result("./logs/ppo")
+    # formatted_result("D:/experiments/mask-pack-compare-algorithm/backup")
     # copy_file1("./settings")
-    copy_file2("./settings")
-    update_yaml_files("./settings")
+    # copy_file2("./settings")
+    # update_yaml_files("./settings")
+    plot_all_mask_diff_strategy_coef()
+
