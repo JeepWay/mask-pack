@@ -121,6 +121,7 @@ class CnnAttenMlpNetwork1_v1(BaseNetwork):
         action_dim: int,
         hidden_dim: int,
         normalize_images: bool = False,
+        cnn_shortcut: bool = True,
         share_out_channels: int = 64,
         attention_kwargs: Optional[Dict[str, Any]] = None,
     ) -> None:
@@ -129,6 +130,7 @@ class CnnAttenMlpNetwork1_v1(BaseNetwork):
             action_dim=action_dim,
             hidden_dim=hidden_dim,
             normalize_images=normalize_images,
+            cnn_shortcut=cnn_shortcut,
         )
 
         self.share_out_channels = share_out_channels
@@ -176,6 +178,7 @@ class CnnAttenMlpNetwork1_v2(BaseNetwork):
         action_dim: int,
         hidden_dim: int,
         normalize_images: bool = False,
+        cnn_shortcut: bool = True,
         share_out_channels: int = 64,
         attention_kwargs: Optional[Dict[str, Any]] = None,
     ) -> None:
@@ -184,6 +187,7 @@ class CnnAttenMlpNetwork1_v2(BaseNetwork):
             action_dim=action_dim,
             hidden_dim=hidden_dim,
             normalize_images=normalize_images,
+            cnn_shortcut=cnn_shortcut,
         )
 
         self.share_out_channels = share_out_channels
