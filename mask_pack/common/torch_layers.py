@@ -241,7 +241,7 @@ class CnnAttenMlpNetwork1_v3(BaseNetwork):
         self.mask_net = nn.Sequential(
             nn.Linear(self.share_out_channels, self.hidden_dim),
             nn.ReLU(),
-            CustomMaxPool(dim=1), 
+            CustomMeanPool(dim=1), 
             nn.Linear(self.hidden_dim, self.action_dim),
             nn.Sigmoid(),
         )
@@ -249,14 +249,14 @@ class CnnAttenMlpNetwork1_v3(BaseNetwork):
         self.actor_net = nn.Sequential(
             nn.Linear(self.share_out_channels, self.hidden_dim),
             nn.ReLU(),
-            CustomMaxPool(dim=1),
+            CustomMeanPool(dim=1),
             nn.Linear(self.hidden_dim, self.action_dim),
         )
 
         self.critic_net = nn.Sequential(
             nn.Linear(self.share_out_channels, self.hidden_dim//2),
             nn.ReLU(),
-            CustomMaxPool(dim=1),
+            CustomMeanPool(dim=1),
             nn.Linear(self.hidden_dim//2, 1),
         )
 
@@ -295,6 +295,168 @@ class CnnAttenMlpNetwork1_v4(BaseNetwork):
         self.mask_net = nn.Sequential(
             nn.Linear(self.share_out_channels, self.hidden_dim),
             nn.ReLU(),
+            CustomMaxPool(dim=1), 
+            nn.Linear(self.hidden_dim, self.action_dim),
+            nn.Sigmoid(),
+        )
+
+        self.actor_net = nn.Sequential(
+            nn.Linear(self.share_out_channels, self.hidden_dim),
+            nn.ReLU(),
+            CustomMaxPool(dim=1), 
+            nn.Linear(self.hidden_dim, self.action_dim),
+        )
+
+        self.critic_net = nn.Sequential(
+            nn.Linear(self.share_out_channels, self.hidden_dim//2),
+            nn.ReLU(),
+            CustomMaxPool(dim=1),
+            nn.Linear(self.hidden_dim//2, 1),
+        )
+
+class CnnAttenMlpNetwork1_v5(BaseNetwork):
+    def __init__(
+        self,
+        observation_space: gym.Space,
+        action_dim: int,
+        hidden_dim: int,
+        normalize_images: bool = False,
+        share_out_channels: int = 64,
+    ) -> None:
+        super().__init__(
+            observation_space=observation_space,
+            action_dim=action_dim,
+            hidden_dim=hidden_dim,
+            normalize_images=normalize_images,
+        )
+
+        self.share_out_channels = share_out_channels
+        self.attention = nn.MultiheadAttention(embed_dim=share_out_channels, num_heads=2, dropout=0.0)
+
+        self.share_extractor = nn.Sequential(
+            (nn.Conv2d(self.share_input_channels, 64, kernel_size=(3,3), stride=1, padding=1)),
+            nn.ReLU(),
+            (nn.Conv2d(64, 64, kernel_size=(3,3), stride=1, padding=1)),
+            nn.ReLU(),
+            (nn.Conv2d(64, 64, kernel_size=(3,3), stride=1, padding=1)),
+            nn.ReLU(),
+            (nn.Conv2d(64, 64, kernel_size=(3,3), stride=1, padding=1)),
+            nn.ReLU(),
+            (nn.Conv2d(64, share_out_channels, kernel_size=(3,3), stride=1, padding=1)),
+            nn.ReLU(),
+        )
+
+        self.mask_net = nn.Sequential(
+            nn.Linear(self.share_out_channels, self.hidden_dim),
+            nn.ReLU(),
+            CustomMeanPool(dim=-1),
+            nn.Linear(self.action_dim, self.action_dim),
+            nn.Sigmoid(),
+        )
+
+        self.actor_net = nn.Sequential(
+            nn.Linear(self.share_out_channels, self.hidden_dim),
+            nn.ReLU(),
+            CustomMeanPool(dim=-1),
+            nn.Linear(self.action_dim, self.action_dim),
+        )
+
+        self.critic_net = nn.Sequential(
+            nn.Linear(self.share_out_channels, self.hidden_dim//2),
+            nn.ReLU(),
+            CustomMeanPool(dim=-1),
+            nn.Linear(self.action_dim, 1),
+        )
+
+class CnnAttenMlpNetwork1_v6(BaseNetwork):
+    def __init__(
+        self,
+        observation_space: gym.Space,
+        action_dim: int,
+        hidden_dim: int,
+        normalize_images: bool = False,
+        share_out_channels: int = 64,
+    ) -> None:
+        super().__init__(
+            observation_space=observation_space,
+            action_dim=action_dim,
+            hidden_dim=hidden_dim,
+            normalize_images=normalize_images,
+        )
+
+        self.share_out_channels = share_out_channels
+        self.attention = nn.MultiheadAttention(embed_dim=share_out_channels, num_heads=2, dropout=0.0)
+
+        self.share_extractor = nn.Sequential(
+            (nn.Conv2d(self.share_input_channels, 64, kernel_size=(3,3), stride=1, padding=1)),
+            nn.ReLU(),
+            (nn.Conv2d(64, 64, kernel_size=(3,3), stride=1, padding=1)),
+            nn.ReLU(),
+            (nn.Conv2d(64, 64, kernel_size=(3,3), stride=1, padding=1)),
+            nn.ReLU(),
+            (nn.Conv2d(64, 64, kernel_size=(3,3), stride=1, padding=1)),
+            nn.ReLU(),
+            (nn.Conv2d(64, share_out_channels, kernel_size=(3,3), stride=1, padding=1)),
+            nn.ReLU(),
+        )
+
+        self.mask_net = nn.Sequential(
+            nn.Linear(self.share_out_channels, self.hidden_dim),
+            nn.ReLU(),
+            CustomMaxPool(dim=-1),
+            nn.Linear(self.action_dim, self.action_dim),
+            nn.Sigmoid(),
+        )
+
+        self.actor_net = nn.Sequential(
+            nn.Linear(self.share_out_channels, self.hidden_dim),
+            nn.ReLU(),
+            CustomMaxPool(dim=-1),
+            nn.Linear(self.action_dim, self.action_dim),
+        )
+
+        self.critic_net = nn.Sequential(
+            nn.Linear(self.share_out_channels, self.hidden_dim//2),
+            nn.ReLU(),
+            CustomMaxPool(dim=-1),
+            nn.Linear(self.action_dim, 1),
+        )
+
+class CnnAttenMlpNetwork1_v7(BaseNetwork):
+    def __init__(
+        self,
+        observation_space: gym.Space,
+        action_dim: int,
+        hidden_dim: int,
+        normalize_images: bool = False,
+        share_out_channels: int = 64,
+    ) -> None:
+        super().__init__(
+            observation_space=observation_space,
+            action_dim=action_dim,
+            hidden_dim=hidden_dim,
+            normalize_images=normalize_images,
+        )
+
+        self.share_out_channels = share_out_channels
+        self.attention = nn.MultiheadAttention(embed_dim=share_out_channels, num_heads=2, dropout=0.0)
+
+        self.share_extractor = nn.Sequential(
+            (nn.Conv2d(self.share_input_channels, 64, kernel_size=(3,3), stride=1, padding=1)),
+            nn.ReLU(),
+            (nn.Conv2d(64, 64, kernel_size=(3,3), stride=1, padding=1)),
+            nn.ReLU(),
+            (nn.Conv2d(64, 64, kernel_size=(3,3), stride=1, padding=1)),
+            nn.ReLU(),
+            (nn.Conv2d(64, 64, kernel_size=(3,3), stride=1, padding=1)),
+            nn.ReLU(),
+            (nn.Conv2d(64, share_out_channels, kernel_size=(3,3), stride=1, padding=1)),
+            nn.ReLU(),
+        )
+
+        self.mask_net = nn.Sequential(
+            nn.Linear(self.share_out_channels, self.hidden_dim),
+            nn.ReLU(),
             CustomMeanPool(dim=1), 
             nn.Linear(self.hidden_dim, self.action_dim),
             nn.Sigmoid(),
@@ -303,7 +465,61 @@ class CnnAttenMlpNetwork1_v4(BaseNetwork):
         self.actor_net = nn.Sequential(
             nn.Linear(self.share_out_channels, self.hidden_dim),
             nn.ReLU(),
-            CustomMeanPool(dim=1), 
+            CustomMeanPool(dim=1),
+            nn.Linear(self.hidden_dim, self.action_dim),
+        )
+
+        self.critic_net = nn.Sequential(
+            nn.Linear(self.share_out_channels, self.hidden_dim//2),
+            nn.ReLU(),
+            CustomMeanPool(dim=1),
+            nn.Linear(self.hidden_dim//2, 1),
+        )
+
+class CnnAttenMlpNetwork1_v8(BaseNetwork):
+    def __init__(
+        self,
+        observation_space: gym.Space,
+        action_dim: int,
+        hidden_dim: int,
+        normalize_images: bool = False,
+        share_out_channels: int = 64,
+    ) -> None:
+        super().__init__(
+            observation_space=observation_space,
+            action_dim=action_dim,
+            hidden_dim=hidden_dim,
+            normalize_images=normalize_images,
+        )
+
+        self.share_out_channels = share_out_channels
+        self.attention = nn.MultiheadAttention(embed_dim=share_out_channels, num_heads=2, dropout=0.0)
+
+        self.share_extractor = nn.Sequential(
+            (nn.Conv2d(self.share_input_channels, 64, kernel_size=(3,3), stride=1, padding=1)),
+            nn.ReLU(),
+            (nn.Conv2d(64, 64, kernel_size=(3,3), stride=1, padding=1)),
+            nn.ReLU(),
+            (nn.Conv2d(64, 64, kernel_size=(3,3), stride=1, padding=1)),
+            nn.ReLU(),
+            (nn.Conv2d(64, 64, kernel_size=(3,3), stride=1, padding=1)),
+            nn.ReLU(),
+            (nn.Conv2d(64, share_out_channels, kernel_size=(3,3), stride=1, padding=1)),
+            nn.ReLU(),
+        )
+
+        self.mask_net = nn.Sequential(
+            nn.Linear(self.share_out_channels, self.hidden_dim),
+            nn.ReLU(),
+            CustomMaxPool(dim=1), 
+            nn.Linear(self.hidden_dim, self.action_dim),
+            nn.Sigmoid(),
+        )
+
+        self.actor_net = nn.Sequential(
+            nn.Linear(self.share_out_channels, self.hidden_dim),
+            nn.ReLU(),
+            CustomMaxPool(dim=1), 
             nn.Linear(self.hidden_dim, self.action_dim),
         )
 
