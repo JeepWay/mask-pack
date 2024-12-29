@@ -63,8 +63,8 @@ class CustomActorCriticPolicy(BasePolicy):
     """   
 
     network_aliases: ClassVar[Dict[str, Type[BaseNetwork]]] = {
-        "CnnAttenMlpNetwork1": CnnAttenMlpNetwork1_v1,
-        "CnnAttenMlpNetwork2": CnnAttenMlpNetwork1_v2,
+        "CnnAttenMlpNetwork1_v1": CnnAttenMlpNetwork1_v1,
+        "CnnAttenMlpNetwork1_v2": CnnAttenMlpNetwork1_v2,
         "CnnMlpNetwork1": CnnMlpNetwork1,
         "CnnMlpNetwork2": CnnMlpNetwork2,
         "CnnMlpNetwork3": CnnMlpNetwork3,
