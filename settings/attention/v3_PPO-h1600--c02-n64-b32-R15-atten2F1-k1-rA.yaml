@@ -1,14 +1,14 @@
-env_id: 2DBpp-v1
+env_id: 2DBpp-v3
 n_envs: 4
 train_seed: 0
 eval_seed: 10
-total_timesteps: 3000000
+total_timesteps: 12500000
 n_eval_episodes: 20
 log_dir: logs/ppo
 env_kwargs:
   render_mode: human
   bin_channels: 3
-  items_per_bin: 15
+  items_per_bin: 25
   area_reward_coef: 0.4
   constant_penalty: -5.0
   action_fail: continue
@@ -18,9 +18,13 @@ monitor_kwargs:
   - PE
 policy_kwargs: &id001
   normalize_images: false
-  network: CnnAttenMlpNetwork1_v5
+  network: CnnAttenMlpNetwork1_v2
   network_kwargs:
-    hidden_dim: 200
+    hidden_dim: 1600
+    cnn_shortcut: false
+    attention_kwargs:
+      num_heads: 1
+      batch_first: true
   dist_kwargs:
     mask_strategy: replace
     mask_minus_coef: 15
