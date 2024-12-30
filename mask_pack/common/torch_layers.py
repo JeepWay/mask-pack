@@ -4,6 +4,7 @@ import gymnasium as gym
 import torch as th
 from gymnasium import spaces
 from torch import nn
+import math
 
 class CustomMaxPool(nn.Module):
     def __init__(self, dim=1):
@@ -20,7 +21,25 @@ class CustomMeanPool(nn.Module):
 
     def forward(self, x):
         return th.mean(x, dim=self.dim)   
-    
+
+class ImplicitPositionalEncoding(nn.Module):
+    def __init__(self, embed_dim, max_len=1600):
+        super(ImplicitPositionalEncoding, self).__init__()
+        self.embed_dim = embed_dim
+        self.max_len = max_len
+        self.encoding = th.zeros(max_len, embed_dim)                    # torch.Size([max_len, embed_dim])
+        position = th.arange(0, max_len, dtype=th.float).unsqueeze(1)   # torch.Size([max_len, 1])
+        div_term = th.exp(th.arange(0, embed_dim, 2).float() * (-math.log(10000.0) / embed_dim))    # torch.Size([embed_dim//2])
+        self.encoding[:, 0::2] = th.sin(position * div_term)            # torch.Size([max_len, embed_dim//2])
+        self.encoding[:, 1::2] = th.cos(position * div_term)            # torch.Size([max_len, embed_dim//2])
+        self.encoding = self.encoding.unsqueeze(0)                      # torch.Size([1, max_len, embed_dim])
+
+    def forward(self, x):
+        seq_len, embed_dim = x.shape[1], x.shape[2]
+        assert embed_dim == self.embed_dim, "input feature's embed_dim must be equal to the module's embed_dim"
+        assert seq_len <= self.max_len, "seq_len must be less than max_len"
+        return x + self.encoding[:seq_len, :].to(x.device)              # torch.Size([N, seq_len, embed_dim])
+
 class BaseNetwork(nn.Module):
     def __init__(
         self,
@@ -28,6 +47,7 @@ class BaseNetwork(nn.Module):
         action_dim: int,
         hidden_dim: int = 100,
         normalize_images: bool = False,
+        position_encode: bool = False,
         cnn_shortcut: bool = False,
     ) -> None:
         assert isinstance(observation_space, spaces.Box), (
@@ -39,12 +59,14 @@ class BaseNetwork(nn.Module):
         self.action_dim = action_dim
         self.hidden_dim = hidden_dim
         self.normalize_images = normalize_images
+        self.position_encode = position_encode
         self.cnn_shortcut = cnn_shortcut
         self.share_input_channels = observation_space.shape[0]
 
         # to be defined in the subclasses 
         self.share_extractor: nn.Sequential = None
         self.attention: nn.MultiheadAttention = None
+        self.positional_encoding: ImplicitPositionalEncoding = None
         self.mask_net: nn.Sequential = None
         self.actor_net: nn.Sequential = None
         self.critic_net: nn.Sequential = None
@@ -57,8 +79,12 @@ class BaseNetwork(nn.Module):
         self.critic_extractor: nn.Sequential = None
 
     def forward(self, observations: th.Tensor) -> Tuple[th.Tensor, th.Tensor, th.Tensor]:
-        cnn_f = self.share_extractor(observations)
+        cnn_f = self.share_extractor(observations)  # [N, share_out_channels, cW, cH]
         cnn_f = cnn_f.flatten(2).transpose(1, 2)
+
+        if self.position_encode is True:
+            cnn_f = self.positional_encoding(cnn_f)    # [N, cW*cH, share_out_channels]
+
         attn_output, _ = self.attention(cnn_f, cnn_f, cnn_f)
         if self.cnn_shortcut is True:
             mask_probs = self.mask_net(attn_output + cnn_f)               # torch.Size([N, action_dim])
@@ -192,6 +218,67 @@ class CnnAttenMlpNetwork1_v2(BaseNetwork):
 
         self.share_out_channels = share_out_channels
         self.attention = nn.MultiheadAttention(embed_dim=share_out_channels, **attention_kwargs)
+
+        self.share_extractor = nn.Sequential(
+            (nn.Conv2d(self.share_input_channels, 64, kernel_size=(3,3), stride=1, padding=1)),
+            nn.ReLU(),
+            (nn.Conv2d(64, 64, kernel_size=(3,3), stride=1, padding=1)),
+            nn.ReLU(),
+            (nn.Conv2d(64, 64, kernel_size=(3,3), stride=1, padding=1)),
+            nn.ReLU(),
+            (nn.Conv2d(64, 64, kernel_size=(3,3), stride=1, padding=1)),
+            nn.ReLU(),
+            (nn.Conv2d(64, share_out_channels, kernel_size=(3,3), stride=1, padding=1)),
+            nn.ReLU(),
+        )
+
+        self.mask_net = nn.Sequential(
+            CustomMeanPool(dim=1), 
+            nn.Linear(self.share_out_channels, self.hidden_dim),
+            nn.ReLU(),
+            nn.Linear(self.hidden_dim, self.action_dim),
+            nn.Sigmoid(),
+        )
+
+        self.actor_net = nn.Sequential(
+            CustomMeanPool(dim=1), 
+            nn.Linear(self.share_out_channels, self.hidden_dim),
+            nn.ReLU(),
+            nn.Linear(self.hidden_dim, self.action_dim),
+        )
+
+        self.critic_net = nn.Sequential(
+            CustomMeanPool(dim=1),
+            nn.Linear(self.share_out_channels, self.hidden_dim//2),
+            nn.ReLU(),
+            nn.Linear(self.hidden_dim//2, 1),
+        )
+
+class CnnAttenMlpNetwork1_v3(BaseNetwork):
+    def __init__(
+        self,
+        observation_space: gym.Space,
+        action_dim: int,
+        hidden_dim: int,
+        normalize_images: bool = False,
+        position_encode: bool = True,
+        cnn_shortcut: bool = True,
+        share_out_channels: int = 64,
+        attention_kwargs: Optional[Dict[str, Any]] = None,
+    ) -> None:
+        super().__init__(
+            observation_space=observation_space,
+            action_dim=action_dim,
+            hidden_dim=hidden_dim,
+            normalize_images=normalize_images,
+            position_encode=position_encode,
+            cnn_shortcut=cnn_shortcut,
+        )
+
+        self.share_out_channels = share_out_channels
+        self.attention = nn.MultiheadAttention(embed_dim=share_out_channels, **attention_kwargs)
+
+        self.positional_encoding = ImplicitPositionalEncoding(embed_dim=share_out_channels, max_len=self.action_dim)
 
         self.share_extractor = nn.Sequential(
             (nn.Conv2d(self.share_input_channels, 64, kernel_size=(3,3), stride=1, padding=1)),

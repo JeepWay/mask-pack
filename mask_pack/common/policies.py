@@ -18,6 +18,7 @@ from mask_pack.common.torch_layers import (
     BaseNetwork,
     CnnAttenMlpNetwork1_v1,
     CnnAttenMlpNetwork1_v2,
+    CnnAttenMlpNetwork1_v3,
     CnnMlpNetwork1, 
     CnnMlpNetwork2, 
     CnnMlpNetwork3, 
@@ -65,6 +66,7 @@ class CustomActorCriticPolicy(BasePolicy):
     network_aliases: ClassVar[Dict[str, Type[BaseNetwork]]] = {
         "CnnAttenMlpNetwork1_v1": CnnAttenMlpNetwork1_v1,
         "CnnAttenMlpNetwork1_v2": CnnAttenMlpNetwork1_v2,
+        "CnnAttenMlpNetwork1_v3": CnnAttenMlpNetwork1_v3,
         "CnnMlpNetwork1": CnnMlpNetwork1,
         "CnnMlpNetwork2": CnnMlpNetwork2,
         "CnnMlpNetwork3": CnnMlpNetwork3,
