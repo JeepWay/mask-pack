@@ -18,14 +18,16 @@ monitor_kwargs:
   - PE
 policy_kwargs: &id001
   normalize_images: false
-  network: CnnAttenMlpNetwork1_v1
+  network: CnnAttenMlpNetwork1_v2
   network_kwargs:
     hidden_dim: 400
     position_encode: true
-    cnn_shortcut: true
+    cnn_shortcut: false
     attention_kwargs:
       out_embed_dim: 256
-      normalize: true
+      num_heads: 4
+      dropout: 0.0
+      normalize: false
   dist_kwargs:
     mask_strategy: replace
     mask_minus_coef: 15
