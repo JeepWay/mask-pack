@@ -1,4 +1,4 @@
-env_id: 2DBpp-v3
+env_id: 2DBpp-v4
 n_envs: 4
 train_seed: 0
 eval_seed: 10
@@ -18,16 +18,14 @@ monitor_kwargs:
   - PE
 policy_kwargs: &id001
   normalize_images: false
-  network: CnnAttenMlpNetwork1_v2
+  network: CnnAttenMlpNetwork1_v1
   network_kwargs:
     hidden_dim: 1600
     position_encode: true
-    cnn_shortcut: true
+    cnn_shortcut: false
     attention_kwargs:
-      out_embed_dim: 64
-      num_heads: 4
-      dropout: 0.0
-      normalize: false
+      out_embed_dim: 256
+      normalize: true
   dist_kwargs:
     mask_strategy: replace
     mask_minus_coef: 15

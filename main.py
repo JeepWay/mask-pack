@@ -149,6 +149,11 @@ if __name__ == "__main__":
         import shutil
         shutil.copy(args.config_path, os.path.join(config['save_path'], args.config_path.split('/')[-1])) 
 
+    if "attention_kwargs" in config["policy_kwargs"]["network_kwargs"]:
+        if config["policy_kwargs"]["network_kwargs"]["cnn_shortcut"] is True:
+            assert config["policy_kwargs"]["network_kwargs"]["attention_kwargs"]["out_embed_dim"] == 64, \
+                    "out_embed_dim of self-attention must be the same as the out_channels (64) of the CNN extractor, if cnn_shortcut is True."
+                    
     # register custom environments
     registration_envs()
 

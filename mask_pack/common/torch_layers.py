@@ -382,6 +382,116 @@ class CnnAttenMlpNetwork1_v2(BaseNetwork):
         )
 
 
+class CnnAttenMlpNetwork1_v3(BaseNetwork):
+    def __init__(
+        self,
+        observation_space: gym.Space,
+        action_dim: int,
+        hidden_dim: int,
+        normalize_images: bool = False,
+        position_encode: bool = True,
+        cnn_shortcut: bool = True,
+        share_out_channels: int = 64,
+        attention_kwargs: Optional[Dict[str, Any]] = None,
+    ) -> None:
+        super().__init__(
+            observation_space=observation_space,
+            action_dim=action_dim,
+            hidden_dim=hidden_dim,
+            normalize_images=normalize_images,
+            position_encode=position_encode,
+            cnn_shortcut=cnn_shortcut,
+        )
+
+        self.share_out_channels = share_out_channels
+        self.attention = SingleHeadAttention(in_embed_dim=share_out_channels, seq_len=action_dim, **attention_kwargs)
+        self.positional_encoding = ImplicitPositionalEncoding(embed_dim=share_out_channels, max_len=self.action_dim)
+        self.layer_norm = nn.LayerNorm((action_dim, attention_kwargs["out_embed_dim"]), elementwise_affine=True)
+
+        self.share_extractor = nn.Sequential(
+            (nn.Conv2d(self.share_input_channels, 64, kernel_size=(3,3), stride=1, padding=1)),
+            nn.ReLU(),
+            (nn.Conv2d(64, 64, kernel_size=(3,3), stride=1, padding=1)),
+            nn.ReLU(),
+            (nn.Conv2d(64, 64, kernel_size=(3,3), stride=1, padding=1)),
+            nn.ReLU(),
+            (nn.Conv2d(64, 64, kernel_size=(3,3), stride=1, padding=1)),
+            nn.ReLU(),
+            (nn.Conv2d(64, share_out_channels, kernel_size=(3,3), stride=1, padding=1)),
+            nn.ReLU(),
+        )
+
+        self.mask_net = nn.Sequential(
+            CustomMeanPool(dim=1), 
+            nn.Linear(self.attention.out_embed_dim, self.hidden_dim),
+            nn.ReLU(),
+            nn.Linear(self.hidden_dim, self.action_dim),
+            nn.Sigmoid(),
+        )
+
+        self.actor_net = nn.Sequential(
+            CustomMeanPool(dim=1), 
+            nn.Linear(self.attention.out_embed_dim, self.hidden_dim),
+            nn.ReLU(),
+            nn.Linear(self.hidden_dim, self.action_dim),
+        )
+
+        self.critic_net = nn.Sequential(
+            CustomMeanPool(dim=1),
+            nn.Linear(self.attention.out_embed_dim, self.hidden_dim//2),
+            nn.ReLU(),
+            nn.Linear(self.hidden_dim//2, 1),
+        )
+        
+    def forward(self, observations: th.Tensor) -> Tuple[th.Tensor, th.Tensor, th.Tensor]:
+        cnn_f = self.share_extractor(observations)  # [N, share_out_channels, cW, cH]
+        cnn_f = cnn_f.flatten(2).transpose(1, 2)    # torch.Size([N, cW*cH, share_out_channels])
+
+        if self.position_encode is True:
+            cnn_f = self.positional_encoding(cnn_f)    # torch.Size([N, cW*cH, share_out_channels])
+
+        attn_output = self.attention(cnn_f, cnn_f, cnn_f)
+        if self.cnn_shortcut is True:
+            mask_probs = self.mask_net(self.layer_norm(attn_output + cnn_f))               # torch.Size([N, action_dim])
+            action_logits = self.actor_net(self.layer_norm(attn_output + cnn_f))           # torch.Size([N, action_dim])
+            values = self.critic_net(self.layer_norm(attn_output + cnn_f))                 # torch.Size([N, 1])
+        else:
+            mask_probs = self.mask_net(self.layer_norm(attn_output))               # torch.Size([N, action_dim])
+            action_logits = self.actor_net(self.layer_norm(attn_output))           # torch.Size([N, action_dim])
+            values = self.critic_net(self.layer_norm(attn_output))                 # torch.Size([N, 1])
+        return mask_probs, action_logits, values
+
+    def forward_mask_probs(self, observations: th.Tensor) -> th.Tensor:
+        cnn_f = self.share_extractor(observations)
+        cnn_f = cnn_f.flatten(2).transpose(1, 2)    # torch.Size([N, cW*cH, output_channels])
+        attn_output = self.attention(cnn_f, cnn_f, cnn_f)     
+        if self.cnn_shortcut is True:
+            mask_probs = self.mask_net(attn_output + cnn_f)
+        else:
+            mask_probs = self.mask_net(attn_output)    
+        return mask_probs
+
+    def forward_action_logits(self, observations: th.Tensor) -> th.Tensor:
+        cnn_f = self.share_extractor(observations)
+        cnn_f = cnn_f.flatten(2).transpose(1, 2)    # torch.Size([N, cW*cH, output_channels])
+        attn_output = self.attention(cnn_f, cnn_f, cnn_f)
+        if self.cnn_shortcut is True:
+            action_logits = self.actor_net(attn_output + cnn_f)
+        else:
+            action_logits = self.actor_net(attn_output) 
+        return action_logits
+    
+    def forward_critic(self, observations: th.Tensor) -> th.Tensor:
+        cnn_f = self.share_extractor(observations)
+        cnn_f = cnn_f.flatten(2).transpose(1, 2)    # torch.Size([N, cW*cH, output_channels])
+        attn_output = self.attention(cnn_f, cnn_f, cnn_f) 
+        if self.cnn_shortcut is True:
+            values = self.critic_net(attn_output + cnn_f)
+        else:    
+            values = self.critic_net(attn_output)      
+        return values
+    
+    
 class CnnMlpNetwork1(BaseNetwork):
     def __init__(
         self,
