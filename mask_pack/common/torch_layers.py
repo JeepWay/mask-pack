@@ -219,6 +219,10 @@ class BaseNetwork(nn.Module):
     def forward_mask_probs(self, observations: th.Tensor) -> th.Tensor:
         cnn_f = self.share_extractor(observations)
         cnn_f = cnn_f.flatten(2).transpose(1, 2)    # torch.Size([N, cW*cH, output_channels])
+
+        if self.position_encode is True:
+            cnn_f = self.positional_encoding(cnn_f)    # torch.Size([N, cW*cH, share_out_channels])
+            
         attn_output = self.attention(cnn_f, cnn_f, cnn_f)     
         if self.cnn_shortcut is True:
             mask_probs = self.mask_net(attn_output + cnn_f)
@@ -229,6 +233,10 @@ class BaseNetwork(nn.Module):
     def forward_action_logits(self, observations: th.Tensor) -> th.Tensor:
         cnn_f = self.share_extractor(observations)
         cnn_f = cnn_f.flatten(2).transpose(1, 2)    # torch.Size([N, cW*cH, output_channels])
+        
+        if self.position_encode is True:
+            cnn_f = self.positional_encoding(cnn_f)    # torch.Size([N, cW*cH, share_out_channels])
+            
         attn_output = self.attention(cnn_f, cnn_f, cnn_f)
         if self.cnn_shortcut is True:
             action_logits = self.actor_net(attn_output + cnn_f)
@@ -239,6 +247,10 @@ class BaseNetwork(nn.Module):
     def forward_critic(self, observations: th.Tensor) -> th.Tensor:
         cnn_f = self.share_extractor(observations)
         cnn_f = cnn_f.flatten(2).transpose(1, 2)    # torch.Size([N, cW*cH, output_channels])
+        
+        if self.position_encode is True:
+            cnn_f = self.positional_encoding(cnn_f)    # torch.Size([N, cW*cH, share_out_channels])
+            
         attn_output = self.attention(cnn_f, cnn_f, cnn_f) 
         if self.cnn_shortcut is True:
             values = self.critic_net(attn_output + cnn_f)
@@ -268,7 +280,7 @@ class CnnAttenMlpNetwork1_v1(BaseNetwork):
         hidden_dim: int,
         normalize_images: bool = False,
         position_encode: bool = True,
-        cnn_shortcut: bool = True,
+        cnn_shortcut: bool = False,
         share_out_channels: int = 64,
         attention_kwargs: Optional[Dict[str, Any]] = None,
     ) -> None:
@@ -329,7 +341,7 @@ class CnnAttenMlpNetwork1_v2(BaseNetwork):
         hidden_dim: int,
         normalize_images: bool = False,
         position_encode: bool = True,
-        cnn_shortcut: bool = True,
+        cnn_shortcut: bool = False,
         share_out_channels: int = 64,
         attention_kwargs: Optional[Dict[str, Any]] = None,
     ) -> None:
@@ -390,7 +402,7 @@ class CnnAttenMlpNetwork1_v3(BaseNetwork):
         hidden_dim: int,
         normalize_images: bool = False,
         position_encode: bool = True,
-        cnn_shortcut: bool = True,
+        cnn_shortcut: bool = False,
         share_out_channels: int = 64,
         attention_kwargs: Optional[Dict[str, Any]] = None,
     ) -> None:
@@ -464,6 +476,10 @@ class CnnAttenMlpNetwork1_v3(BaseNetwork):
     def forward_mask_probs(self, observations: th.Tensor) -> th.Tensor:
         cnn_f = self.share_extractor(observations)
         cnn_f = cnn_f.flatten(2).transpose(1, 2)    # torch.Size([N, cW*cH, output_channels])
+        
+        if self.position_encode is True:
+            cnn_f = self.positional_encoding(cnn_f)    # torch.Size([N, cW*cH, share_out_channels])
+            
         attn_output = self.attention(cnn_f, cnn_f, cnn_f)     
         if self.cnn_shortcut is True:
             mask_probs = self.mask_net(attn_output + cnn_f)
@@ -474,6 +490,10 @@ class CnnAttenMlpNetwork1_v3(BaseNetwork):
     def forward_action_logits(self, observations: th.Tensor) -> th.Tensor:
         cnn_f = self.share_extractor(observations)
         cnn_f = cnn_f.flatten(2).transpose(1, 2)    # torch.Size([N, cW*cH, output_channels])
+        
+        if self.position_encode is True:
+            cnn_f = self.positional_encoding(cnn_f)    # torch.Size([N, cW*cH, share_out_channels])
+        
         attn_output = self.attention(cnn_f, cnn_f, cnn_f)
         if self.cnn_shortcut is True:
             action_logits = self.actor_net(attn_output + cnn_f)
@@ -484,6 +504,10 @@ class CnnAttenMlpNetwork1_v3(BaseNetwork):
     def forward_critic(self, observations: th.Tensor) -> th.Tensor:
         cnn_f = self.share_extractor(observations)
         cnn_f = cnn_f.flatten(2).transpose(1, 2)    # torch.Size([N, cW*cH, output_channels])
+        
+        if self.position_encode is True:
+            cnn_f = self.positional_encoding(cnn_f)    # torch.Size([N, cW*cH, share_out_channels])
+        
         attn_output = self.attention(cnn_f, cnn_f, cnn_f) 
         if self.cnn_shortcut is True:
             values = self.critic_net(attn_output + cnn_f)
