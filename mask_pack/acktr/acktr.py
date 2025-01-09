@@ -5,6 +5,8 @@ import numpy as np
 import torch as th
 from gymnasium import spaces
 from torch.nn import functional as F
+import os
+os.environ['PYTORCH_CUDA_ALLOC_CONF'] = 'expandable_segments:True'
 th.backends.cuda.preferred_linalg_library("magma")
 
 # from stable_baselines3.common.buffers import RolloutBuffer

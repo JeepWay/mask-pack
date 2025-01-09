@@ -209,7 +209,11 @@ class KFACOptimizer(optim.Optimizer):
                 # My asynchronous implementation exists, I will add it later.
                 # Experimenting with different ways to this in PyTorch.
 
-                block_size = 64* 4
+                ''' 
+                normalizing the eigenvectors to avoid torch._C._LinAlgError: linalg.eigh: The algorithm failed to converge because the input matrix is ill-conditioned or has too many repeated eigenvalues (error code: 41360)
+                blockwise computation is used to avoid run out of cuda memory 
+                '''
+                block_size = 64 * 4
                 epsilon_gg = torch.max(self.m_gg[m].abs()) * 1e-6
                 epsilon_aa = torch.max(self.m_aa[m].abs()) * 1e-6
                 self.d_g[m], self.Q_g[m] = blockwise_eigh(
@@ -224,7 +228,18 @@ class KFACOptimizer(optim.Optimizer):
                     epsilon=epsilon_aa,
                     device=self.m_aa[m].device
                 )
-
+                
+                ''' 
+                normalizing the eigenvectors to avoid torch._C._LinAlgError: linalg.eigh: The algorithm failed to converge because the input matrix is ill-conditioned or has too many repeated eigenvalues (error code: 41360)
+                '''
+                # epsilon_gg = torch.max(self.m_gg[m].abs()) * 1e-6   
+                # self.d_g[m], self.Q_g[m] = torch.linalg.eigh(
+                #     self.m_gg[m] + epsilon_gg * torch.eye(self.m_gg[m].size(0)).to(self.m_gg[m].device))
+                # epsilon_aa = torch.max(self.m_aa[m].abs()) * 1e-6
+                # self.d_a[m], self.Q_a[m] = torch.linalg.eigh(
+                #     self.m_aa[m] + epsilon_aa * torch.eye(self.m_aa[m].size(0)).to(self.m_aa[m].device))
+                
+                ''' original code '''
                 # self.d_g[m], self.Q_g[m] = torch.linalg.eigh(
                 #     self.m_gg[m])
                 # self.d_a[m], self.Q_a[m] = torch.linalg.eigh(
