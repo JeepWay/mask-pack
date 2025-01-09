@@ -1,29 +1,47 @@
 # main settings
-python main.py --config_path settings/main/v1_PPO-h200-c02-n64-b32-R15-k1-rA.yaml
-python main.py --config_path settings/main/v2_PPO-h400-c02-n64-b32-R15-k1-rA.yaml
-python main.py --config_path settings/main/v3_PPO-h1600-c02-n64-b32-R15-k1-rA.yaml
-python main.py --config_path settings/main/v4_PPO-h1600-c02-n64-b32-R15-k1-rA.yaml
+python main.py --config_path settings/main/v1_PPO-h200-c02-n64-b32-R15-atten1TF256T-k1-rA.yaml
+python main.py --config_path settings/main/v2_PPO-h400-c02-n64-b32-R15-atten1TF256T-k1-rA.yaml
+python main.py --config_path settings/main/v3_PPO-h1600-c02-n64-b32-R15-atten1TF256T-k1-rA.yaml
+python main.py --config_path settings/main/v4_PPO-h1600-c02-n64-b32-R15-atten1TF256T-k1-rA.yaml
 
 
-# ablation study / use ACKTR to update policy
-python main.py --config_path settings/ablation/ACKTR/v1_ACKTR-h200-c02-n64-b32-R15-k1-rA.yaml
-python main.py --config_path settings/ablation/ACKTR/v2_ACKTR-h400-c02-n64-b32-R15-k1-rA.yaml
-python main.py --config_path settings/ablation/ACKTR/v3_ACKTR-h1600-c02-n64-b32-R15-k1-rA.yaml
-python main.py --config_path settings/ablation/ACKTR/v4_ACKTR-h1600-c02-n64-b32-R15-k1-rA.yaml
+# attention
+python main.py --config_path settings/attention/v1_PPO-h200-c02-n64-b32-R15-atten1FF256T-k1-rA.yaml
+python main.py --config_path settings/attention/v1_PPO-h200-c02-n64-b32-R15-atten1TF256F-k1-rA.yaml
+python main.py --config_path settings/attention/v2_PPO-h400-c02-n64-b32-R15-atten1FF256T-k1-rA.yaml
+python main.py --config_path settings/attention/v2_PPO-h400-c02-n64-b32-R15-atten1TF256F-k1-rA.yaml
+python main.py --config_path settings/attention/v3_PPO-h1600-c02-n64-b32-R15-atten1FF256T-k1-rA.yaml
+python main.py --config_path settings/attention/v3_PPO-h1600-c02-n64-b32-R15-atten1TF256F-k1-rA.yaml
+python main.py --config_path settings/attention/v4_PPO-h1600-c02-n64-b32-R15-atten1FF256T-k1-rA.yaml
+python main.py --config_path settings/attention/v4_PPO-h1600-c02-n64-b32-R15-atten1TF256F-k1-rA.yaml
+
+
+# ablation study / use original network of reference paper
+python main.py --config_path settings/ablation/orig_net/v1_PPO-h200-c02-n64-b32-R15-k1-rA.yaml
+python main.py --config_path settings/ablation/orig_net/v2_PPO-h400-c02-n64-b32-R15-k1-rA.yaml
+python main.py --config_path settings/ablation/orig_net/v3_PPO-h1600-c02-n64-b32-R15-k1-rA.yaml
+python main.py --config_path settings/ablation/orig_net/v4_PPO-h1600-c02-n64-b32-R15-k1-rA.yaml
 
 
 # ablation study / compare diff reward type
-python main.py --config_path settings/ablation/diff_reward_type/v1_PPO-h200-c02-n64-b32-R15-k1-rC.yaml
-python main.py --config_path settings/ablation/diff_reward_type/v2_PPO-h400-c02-n64-b32-R15-k1-rC.yaml
-python main.py --config_path settings/ablation/diff_reward_type/v3_PPO-h1600-c02-n64-b32-R15-k1-rC.yaml
-python main.py --config_path settings/ablation/diff_reward_type/v4_PPO-h1600-c02-n64-b32-R15-k1-rC.yaml
+python main.py --config_path settings/ablation/diff_reward_type/v1_PPO-h200-c02-n64-b32-R15-atten1TF256T-k1-rC.yaml
+python main.py --config_path settings/ablation/diff_reward_type/v2_PPO-h400-c02-n64-b32-R15-atten1TF256T-k1-rC.yaml
+python main.py --config_path settings/ablation/diff_reward_type/v3_PPO-h1600-c02-n64-b32-R15-atten1TF256T-k1-rC.yaml
+python main.py --config_path settings/ablation/diff_reward_type/v4_PPO-h1600-c02-n64-b32-R15-atten1TF256T-k1-rC.yaml
 
 
-# ablation study / use prediction mask
-python main.py --config_path settings/ablation/pred_mask/v1_PPO-h200-c02-n64-b32-R15-k1-rA-P.yaml
-python main.py --config_path settings/ablation/pred_mask/v2_PPO-h400-c02-n64-b32-R15-k1-rA-P.yaml
-python main.py --config_path settings/ablation/pred_mask/v3_PPO-h1600-c02-n64-b32-R15-k1-rA-P.yaml
-python main.py --config_path settings/ablation/pred_mask/v4_PPO-h1600-c02-n64-b32-R15-k1-rA-P.yaml
+# ablation study / use prediction mask to train
+python main.py --config_path settings/ablation/pred_mask/v1_PPO-h200-c02-n64-b32-R15-atten1TF256T-k1-rA-P.yaml
+python main.py --config_path settings/ablation/pred_mask/v2_PPO-h400-c02-n64-b32-R15-atten1TF256T-k1-rA-P.yaml
+python main.py --config_path settings/ablation/pred_mask/v3_PPO-h1600-c02-n64-b32-R15-atten1TF256T-k1-rA-P.yaml
+python main.py --config_path settings/ablation/pred_mask/v4_PPO-h1600-c02-n64-b32-R15-atten1TF256T-k1-rA-P.yaml
+
+
+# ablation study / use ACKTR to update policy (orig_net)
+python main.py --config_path settings/ablation/ACKTR/v1_ACKTR-h200-n64-R15-rA.yaml
+python main.py --config_path settings/ablation/ACKTR/v2_ACKTR-h400-n64-R15-rA.yaml
+python main.py --config_path settings/ablation/ACKTR/v3_ACKTR-h1600-n64-R15-rA.yaml
+python main.py --config_path settings/ablation/ACKTR/v4_ACKTR-h1600-n64-R15-rA.yaml
 
 
 # sensitive study / replace mask diff coef fo v1

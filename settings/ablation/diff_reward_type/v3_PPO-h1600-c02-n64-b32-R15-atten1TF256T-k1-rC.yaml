@@ -12,20 +12,20 @@ env_kwargs:
   area_reward_coef: 0.4
   constant_penalty: -5.0
   action_fail: continue
-  reward_type: area
+  reward_type: compactness
 monitor_kwargs:
   info_keywords: !!python/tuple
   - PE
 policy_kwargs: &id001
   normalize_images: false
-  network: CnnAttenMlpNetwork1_v3
+  network: CnnAttenMlpNetwork1_v1
   network_kwargs:
     hidden_dim: 1600
-    position_encode: false
+    position_encode: true
     cnn_shortcut: false
     attention_kwargs:
       out_embed_dim: 256
-      normalize: false
+      normalize: true
   dist_kwargs:
     mask_strategy: replace
     mask_minus_coef: 15

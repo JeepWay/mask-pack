@@ -12,7 +12,7 @@ env_kwargs:
   area_reward_coef: 0.4
   constant_penalty: -5.0
   action_fail: continue
-  reward_type: area
+  reward_type: compactness
 monitor_kwargs:
   info_keywords: !!python/tuple
   - PE
@@ -22,10 +22,10 @@ policy_kwargs: &id001
   network_kwargs:
     hidden_dim: 200
     position_encode: true
-    cnn_shortcut: true
+    cnn_shortcut: false
     attention_kwargs:
-      out_embed_dim: 64
-      normalize: false
+      out_embed_dim: 256
+      normalize: true
   dist_kwargs:
     mask_strategy: replace
     mask_minus_coef: 15
