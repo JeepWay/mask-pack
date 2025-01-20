@@ -6,14 +6,38 @@ python main.py --config_path settings/main/v4_PPO-h1600-c02-n64-b32-R15-atten1TF
 
 
 # attention
+python main.py --config_path settings/attention/v1_PPO-h200-c02-n64-b32-R15-atten1FF256F-k1-rA.yaml
 python main.py --config_path settings/attention/v1_PPO-h200-c02-n64-b32-R15-atten1FF256T-k1-rA.yaml
 python main.py --config_path settings/attention/v1_PPO-h200-c02-n64-b32-R15-atten1TF256F-k1-rA.yaml
+python main.py --config_path settings/attention/v1_PPO-h200-c02-n64-b32-R15-atten1TF256T-k1-rA.yaml
+python main.py --config_path settings/attention/v1_PPO-h200-c02-n64-b32-R15-atten1FT64F-k1-rA.yaml
+python main.py --config_path settings/attention/v1_PPO-h200-c02-n64-b32-R15-atten1FT64T-k1-rA.yaml
+python main.py --config_path settings/attention/v1_PPO-h200-c02-n64-b32-R15-atten1TT64F-k1-rA.yaml
+python main.py --config_path settings/attention/v1_PPO-h200-c02-n64-b32-R15-atten1TT64T-k1-rA.yaml
+python main.py --config_path settings/attention/v2_PPO-h400-c02-n64-b32-R15-atten1FF256F-k1-rA.yaml
 python main.py --config_path settings/attention/v2_PPO-h400-c02-n64-b32-R15-atten1FF256T-k1-rA.yaml
 python main.py --config_path settings/attention/v2_PPO-h400-c02-n64-b32-R15-atten1TF256F-k1-rA.yaml
+python main.py --config_path settings/attention/v2_PPO-h400-c02-n64-b32-R15-atten1TF256T-k1-rA.yaml
+python main.py --config_path settings/attention/v2_PPO-h400-c02-n64-b32-R15-atten1FT64F-k1-rA.yaml
+python main.py --config_path settings/attention/v2_PPO-h400-c02-n64-b32-R15-atten1FT64T-k1-rA.yaml
+python main.py --config_path settings/attention/v2_PPO-h400-c02-n64-b32-R15-atten1TT64F-k1-rA.yaml
+python main.py --config_path settings/attention/v2_PPO-h400-c02-n64-b32-R15-atten1TT64T-k1-rA.yaml
+python main.py --config_path settings/attention/v3_PPO-h1600-c02-n64-b32-R15-atten1FF256F-k1-rA.yaml
 python main.py --config_path settings/attention/v3_PPO-h1600-c02-n64-b32-R15-atten1FF256T-k1-rA.yaml
 python main.py --config_path settings/attention/v3_PPO-h1600-c02-n64-b32-R15-atten1TF256F-k1-rA.yaml
+python main.py --config_path settings/attention/v3_PPO-h1600-c02-n64-b32-R15-atten1TF256T-k1-rA.yaml
+python main.py --config_path settings/attention/v3_PPO-h1600-c02-n64-b32-R15-atten1FT64F-k1-rA.yaml
+python main.py --config_path settings/attention/v3_PPO-h1600-c02-n64-b32-R15-atten1FT64T-k1-rA.yaml
+python main.py --config_path settings/attention/v3_PPO-h1600-c02-n64-b32-R15-atten1TT64F-k1-rA.yaml
+python main.py --config_path settings/attention/v3_PPO-h1600-c02-n64-b32-R15-atten1TT64T-k1-rA.yaml
+python main.py --config_path settings/attention/v4_PPO-h1600-c02-n64-b32-R15-atten1FF256F-k1-rA.yaml
 python main.py --config_path settings/attention/v4_PPO-h1600-c02-n64-b32-R15-atten1FF256T-k1-rA.yaml
 python main.py --config_path settings/attention/v4_PPO-h1600-c02-n64-b32-R15-atten1TF256F-k1-rA.yaml
+python main.py --config_path settings/attention/v4_PPO-h1600-c02-n64-b32-R15-atten1TF256T-k1-rA.yaml
+python main.py --config_path settings/attention/v4_PPO-h1600-c02-n64-b32-R15-atten1FT64F-k1-rA.yaml
+python main.py --config_path settings/attention/v4_PPO-h1600-c02-n64-b32-R15-atten1FT64T-k1-rA.yaml
+python main.py --config_path settings/attention/v4_PPO-h1600-c02-n64-b32-R15-atten1TT64F-k1-rA.yaml
+python main.py --config_path settings/attention/v4_PPO-h1600-c02-n64-b32-R15-atten1TT64T-k1-rA.yaml
 
 
 # ablation study / use original network of reference paper
