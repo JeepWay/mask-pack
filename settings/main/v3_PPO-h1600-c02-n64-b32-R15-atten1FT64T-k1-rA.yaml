@@ -21,10 +21,10 @@ policy_kwargs: &id001
   network: CnnAttenMlpNetwork1_v1
   network_kwargs:
     hidden_dim: 1600
-    position_encode: true
-    cnn_shortcut: false
+    position_encode: false
+    cnn_shortcut: true
     attention_kwargs:
-      out_embed_dim: 256
+      out_embed_dim: 64
       normalize: true
   dist_kwargs:
     mask_strategy: replace
