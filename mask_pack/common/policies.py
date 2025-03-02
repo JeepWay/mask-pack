@@ -16,6 +16,9 @@ from stable_baselines3.common.distributions import Distribution
 
 from mask_pack.common.torch_layers import (
     BaseNetwork,
+    CnnAttenMlpNetwork1_v1,
+    CnnAttenMlpNetwork1_v2,
+    CnnAttenMlpNetwork1_v3,
     CnnMlpNetwork1, 
     CnnMlpNetwork2, 
     CnnMlpNetwork3, 
@@ -61,6 +64,9 @@ class CustomActorCriticPolicy(BasePolicy):
     """   
 
     network_aliases: ClassVar[Dict[str, Type[BaseNetwork]]] = {
+        "CnnAttenMlpNetwork1_v1": CnnAttenMlpNetwork1_v1,
+        "CnnAttenMlpNetwork1_v2": CnnAttenMlpNetwork1_v2,
+        "CnnAttenMlpNetwork1_v3": CnnAttenMlpNetwork1_v3,
         "CnnMlpNetwork1": CnnMlpNetwork1,
         "CnnMlpNetwork2": CnnMlpNetwork2,
         "CnnMlpNetwork3": CnnMlpNetwork3,
@@ -191,13 +197,18 @@ class CustomActorCriticPolicy(BasePolicy):
             # originally from openai/baselines (default gains/init_scales).
             module_gains = {
                 self.network.share_extractor: np.sqrt(2),
-                self.network.mask_extractor: np.sqrt(2),
-                self.network.actor_extractor: np.sqrt(2),
-                self.network.critic_extractor: np.sqrt(2),
                 self.network.mask_net: 0.01,
                 self.network.actor_net: 0.01,
                 self.network.critic_net: 1,
             }
+            if self.network.attention is not None:
+                module_gains[self.network.attention] = np.sqrt(2)
+                
+            if self.network.mask_extractor is not None:
+                module_gains[self.network.mask_extractor] = np.sqrt(2)
+                module_gains[self.network.actor_extractor] = np.sqrt(2)
+                module_gains[self.network.critic_extractor] = np.sqrt(2)
+
             for module, gain in module_gains.items():
                 module.apply(partial(self.init_weights, gain=gain))
 

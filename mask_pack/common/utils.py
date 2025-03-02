@@ -49,6 +49,7 @@ def blockwise_eigh(matrix, block_size, epsilon, device):
         block_size_actual = block.shape[0]
 
         d, Q = th.linalg.eigh(block + epsilon * th.eye(block_size_actual, device=device))
+        # d, Q = th.linalg.eigh(block)
 
         eigenvalues_list.append(d)
         eigenvectors_list.append(Q)
