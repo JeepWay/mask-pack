@@ -100,22 +100,34 @@ def update_yaml_files(dir):
                     data['env_id'] = '2DBpp-v1'
                     data['total_timesteps'] = 3000000
                     data['env_kwargs']['items_per_bin'] = 15
-                    data['policy_kwargs']['network'] = "CnnMlpNetwork1"
+                    if "atten1" in filename: 
+                        data['policy_kwargs']['network'] = "CnnAttenMlpNetwork1_v1"
+                    else:
+                        data['policy_kwargs']['network'] = "CnnMlpNetwork1"
                 elif "v2" in filename:
                     data['env_id'] = '2DBpp-v2'
                     data['total_timesteps'] = 6000000
                     data['env_kwargs']['items_per_bin'] = 20
-                    data['policy_kwargs']['network'] = "CnnMlpNetwork2"
+                    if "atten1" in filename: 
+                        data['policy_kwargs']['network'] = "CnnAttenMlpNetwork1_v1"
+                    else:
+                        data['policy_kwargs']['network'] = "CnnMlpNetwork2"
                 elif "v3" in filename:
                     data['env_id'] = '2DBpp-v3'
                     data['total_timesteps'] = 12500000
                     data['env_kwargs']['items_per_bin'] = 25
-                    data['policy_kwargs']['network'] = "CnnMlpNetwork3"
+                    if "atten1" in filename: 
+                        data['policy_kwargs']['network'] = "CnnAttenMlpNetwork1_v1"
+                    else:
+                        data['policy_kwargs']['network'] = "CnnMlpNetwork3"
                 elif "v4" in filename:
                     data['env_id'] = '2DBpp-v4'
                     data['total_timesteps'] = 12500000
                     data['env_kwargs']['items_per_bin'] = 25
-                    data['policy_kwargs']['network'] = "CnnMlpNetwork4"
+                    if "atten1" in filename:
+                        data['policy_kwargs']['network'] = "CnnAttenMlpNetwork1_v1"
+                    else:
+                        data['policy_kwargs']['network'] = "CnnMlpNetwork4"
             else:
                 print("Lack of environment version!\n")
                 return
@@ -194,20 +206,20 @@ def update_yaml_files(dir):
 
 def copy_file1(dir: str) -> None: 
     import shutil
-    source_file = "main/v4_PPO-h1600-c02-n64-b32-R15-k1-rA.yaml"
+    source_file = "main/v1_PPO-h200-c02-n64-b32-R15-atten1FT64T-atten1FT64T-k1-rA.yaml"
     destination_files = [
-        "v4_PPO-h1600-c02-n64-b32-R0-k1-rA.yaml",
-        "v4_PPO-h1600-c02-n64-b32-R7-k1-rA.yaml",
-        "v4_PPO-h1600-c02-n64-b32-R30-k1-rA.yaml",
-        "v4_PPO-h1600-c02-n64-b32-R50-k1-rA.yaml",
-        "v4_PPO-h1600-c02-n64-b32-R100-k1-rA.yaml",
-        "v4_PPO-h1600-c02-n64-b32-R500-k1-rA.yaml",
-        "v4_PPO-h1600-c02-n64-b32-Re3-k1-rA.yaml",
-        "v4_PPO-h1600-c02-n64-b32-Re4-k1-rA.yaml",
-        "v4_PPO-h1600-c02-n64-b32-Re5-k1-rA.yaml",
-        "v4_PPO-h1600-c02-n64-b32-Re6-k1-rA.yaml",
-        "v4_PPO-h1600-c02-n64-b32-Re7-k1-rA.yaml",
-        "v4_PPO-h1600-c02-n64-b32-Re8-k1-rA.yaml",
+        "v1_PPO-h200-c02-n64-b32-M0-atten1FT64T-k1-rA.yaml",
+        "v1_PPO-h200-c02-n64-b32-M7-atten1FT64T-k1-rA.yaml",
+        "v1_PPO-h200-c02-n64-b32-M30-atten1FT64T-k1-rA.yaml",
+        "v1_PPO-h200-c02-n64-b32-M50-atten1FT64T-k1-rA.yaml",
+        "v1_PPO-h200-c02-n64-b32-M100-atten1FT64T-k1-rA.yaml",
+        "v1_PPO-h200-c02-n64-b32-M500-atten1FT64T-k1-rA.yaml",
+        "v1_PPO-h200-c02-n64-b32-Me3-atten1FT64T-k1-rA.yaml",
+        "v1_PPO-h200-c02-n64-b32-Me4-atten1FT64T-k1-rA.yaml",
+        "v1_PPO-h200-c02-n64-b32-Me5-atten1FT64T-k1-rA.yaml",
+        "v1_PPO-h200-c02-n64-b32-Me6-atten1FT64T-k1-rA.yaml",
+        "v1_PPO-h200-c02-n64-b32-Me7-atten1FT64T-k1-rA.yaml",
+        "v1_PPO-h200-c02-n64-b32-Me8-atten1FT64T-k1-rA.yaml",
     ]
     for destination_file in destination_files:
         shutil.copy(os.path.join(dir, source_file), os.path.join(dir, destination_file))
@@ -215,24 +227,24 @@ def copy_file1(dir: str) -> None:
 
 def copy_file2(dir: str) -> None: 
     import shutil
-    source_file = "main/v4_PPO-h1600-c02-n64-b32-R15-k1-rA.yaml"
+    source_file = "main/v4_PPO-h1600-c02-n64-b32-R15-atten1FT64T-k1-rA.yaml"
     destination_files = [
-        "v4_PPO-h1600-c02-n64-b32-R15-k1-rA.yaml",
-        "v4_PPO-h1600-c02-n64-b64-R15-k5-rA.yaml",
-        "v4_PPO-h1600-c02-n128-b32-R15-k1-rA.yaml",
-        "v4_PPO-h1600-c02-n128-b64-R15-k5-rA.yaml",
-        "v4_PPO-h1600-c04-n64-b32-R15-k1-rA.yaml",
-        "v4_PPO-h1600-c04-n64-b64-R15-k5-rA.yaml",
-        "v4_PPO-h1600-c04-n128-b32-R15-k1-rA.yaml",
-        "v4_PPO-h1600-c04-n128-b64-R15-k5-rA.yaml",
-        "v4_PPO-h3200-c02-n64-b32-R15-k1-rA.yaml",
-        "v4_PPO-h3200-c02-n64-b64-R15-k5-rA.yaml",
-        "v4_PPO-h3200-c02-n128-b32-R15-k1-rA.yaml",
-        "v4_PPO-h3200-c02-n128-b64-R15-k5-rA.yaml",
-        "v4_PPO-h3200-c04-n64-b32-R15-k1-rA.yaml",
-        "v4_PPO-h3200-c04-n64-b64-R15-k5-rA.yaml",
-        "v4_PPO-h3200-c04-n128-b32-R15-k1-rA.yaml",
-        "v4_PPO-h3200-c04-n128-b64-R15-k5-rA.yaml",
+        "v4_PPO-h1600-c02-n64-b32-R15-atten1FT64T-k1-rA.yaml",
+        "v4_PPO-h1600-c02-n64-b64-R15-atten1FT64T-k5-rA.yaml",
+        "v4_PPO-h1600-c02-n128-b32-R15-atten1FT64T-k1-rA.yaml",
+        "v4_PPO-h1600-c02-n128-b64-R15-atten1FT64T-k5-rA.yaml",
+        "v4_PPO-h1600-c04-n64-b32-R15-atten1FT64T-k1-rA.yaml",
+        "v4_PPO-h1600-c04-n64-b64-R15-atten1FT64T-k5-rA.yaml",
+        "v4_PPO-h1600-c04-n128-b32-R15-atten1FT64T-k1-rA.yaml",
+        "v4_PPO-h1600-c04-n128-b64-R15-atten1FT64T-k5-rA.yaml",
+        "v4_PPO-h3200-c02-n64-b32-R15-atten1FT64T-k1-rA.yaml",
+        "v4_PPO-h3200-c02-n64-b64-R15-atten1FT64T-k5-rA.yaml",
+        "v4_PPO-h3200-c02-n128-b32-R15-atten1FT64T-k1-rA.yaml",
+        "v4_PPO-h3200-c02-n128-b64-R15-atten1FT64T-k5-rA.yaml",
+        "v4_PPO-h3200-c04-n64-b32-R15-atten1FT64T-k1-rA.yaml",
+        "v4_PPO-h3200-c04-n64-b64-R15-atten1FT64T-k5-rA.yaml",
+        "v4_PPO-h3200-c04-n128-b32-R15-atten1FT64T-k1-rA.yaml",
+        "v4_PPO-h3200-c04-n128-b64-R15-atten1FT64T-k5-rA.yaml",
     ]
     for destination_file in destination_files:
         shutil.copy(os.path.join(dir, source_file), os.path.join(dir, destination_file))
@@ -273,9 +285,9 @@ def plot_all_mask_diff_strategy_coef():
 
 if __name__ == "__main__":
     # $ tensorboard --logdir backup/diff_mask
-    # formatted_result("D:/experiments/mask-pack-compare-algorithm/backup")
+    formatted_result("logs/ppo")
     # copy_file1("./settings")
     # copy_file2("./settings")
     # update_yaml_files("./settings")
-    plot_all_mask_diff_strategy_coef()
+    # plot_all_mask_diff_strategy_coef()
 
