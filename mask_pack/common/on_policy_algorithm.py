@@ -19,6 +19,7 @@ from mask_pack.common.buffers import RolloutBuffer, DictRolloutBuffer
 from mask_pack.common.policies import CustomActorCriticPolicy
 from mask_pack.common.constants import BIN, MASK, PE
 from mask_pack.common.base_class import BaseAlgorithm
+from mask_pack.common.callbacks import MetricsCallback
 
 SelfOnPolicyAlgorithm = TypeVar("SelfOnPolicyAlgorithm", bound="OnPolicyAlgorithm")
 
@@ -296,14 +297,14 @@ class OnPolicyAlgorithm(BaseAlgorithm):
         # self.logger.record("time/iterations", iteration, exclude="tensorboard")
         if len(self.ep_info_buffer) > 0 and len(self.ep_info_buffer[0]) > 0:
             self.logger.record("rollout/ep_rew_mean", safe_mean([ep_info["r"] for ep_info in self.ep_info_buffer]))
-            # self.logger.record("rollout/ep_len_mean", safe_mean([ep_info["l"] for ep_info in self.ep_info_buffer]))
+            self.logger.record("rollout/ep_len_mean", safe_mean([ep_info["l"] for ep_info in self.ep_info_buffer]))
             self.logger.record("rollout/ep_PE_mean", safe_mean([ep_info[PE] for ep_info in self.ep_info_buffer]))
         # self.logger.record("time/fps", fps)
         # self.logger.record("time/time_elapsed", int(time_elapsed), exclude="tensorboard")
         # self.logger.record("time/total_timesteps", self.num_timesteps, exclude="tensorboard")
         if len(self.ep_success_buffer) > 0:
             self.logger.record("rollout/success_rate", safe_mean(self.ep_success_buffer))
-        self.logger.dump(step=self.num_timesteps)
+        # self.logger.dump(step=self.num_timesteps)     # MetricsCallback() will dump the logs
 
     def learn(
         self: SelfOnPolicyAlgorithm,
@@ -343,6 +344,10 @@ class OnPolicyAlgorithm(BaseAlgorithm):
                 self._dump_logs(iteration)
 
             self.train()
+            metrics_callback = callback.callbacks[0].callbacks[0]
+            assert isinstance(metrics_callback, MetricsCallback)
+            metrics_callback.on_update_end()
+            self.logger.dump(step=self.num_timesteps)
 
         callback.on_training_end()
 

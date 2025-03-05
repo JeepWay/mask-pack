@@ -47,6 +47,12 @@ class MetricsCallback(BaseCallback):
         return True
 
     def _on_rollout_end(self) -> None:
+        pass
+        
+    def _on_training_end(self) -> None:
+        self.file_handler.close()
+
+    def on_update_end(self) -> None:
         metrics = {
             "timesteps": self.model.num_timesteps,
             "ep_rew_mean": self.logger.name_to_value['rollout/ep_rew_mean'], 
@@ -66,6 +72,3 @@ class MetricsCallback(BaseCallback):
         }
         self.metrics_logger.writerow(metrics)
         self.file_handler.flush()
-
-    def _on_training_end(self) -> None:
-        self.file_handler.close()
