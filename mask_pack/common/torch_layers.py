@@ -198,6 +198,9 @@ class BaseNetwork(nn.Module):
         self.actor_extractor: nn.Sequential = None
         self.critic_n_flatten: int = None
         self.critic_extractor: nn.Sequential = None
+        
+        self.l1: nn.Linear = None
+        self.transformer: nn.TransformerEncoder = None
 
     def forward(self, observations: th.Tensor) -> Tuple[th.Tensor, th.Tensor, th.Tensor]:
         cnn_f = self.share_extractor(observations)  # [N, share_out_channels, cW, cH]

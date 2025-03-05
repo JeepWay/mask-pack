@@ -198,18 +198,26 @@ class CustomActorCriticPolicy(BasePolicy):
             # features_extractor/mlp values are
             # originally from openai/baselines (default gains/init_scales).
             module_gains = {
-                self.network.share_extractor: np.sqrt(2),
-                self.network.mask_net: 0.01,
                 self.network.actor_net: 0.01,
                 self.network.critic_net: 1,
             }
+            if self.network.share_extractor is not None:
+                module_gains[self.network.share_extractor] = np.sqrt(2)
+
+            if self.network.mask_net is not None:
+                module_gains[self.network.mask_net] = 0.01
+
             if self.network.attention is not None:
                 module_gains[self.network.attention] = np.sqrt(2)
-                
+
             if self.network.mask_extractor is not None:
                 module_gains[self.network.mask_extractor] = np.sqrt(2)
                 module_gains[self.network.actor_extractor] = np.sqrt(2)
                 module_gains[self.network.critic_extractor] = np.sqrt(2)
+
+            if self.network.transformer is not None:
+                module_gains[self.network.transformer] = np.sqrt(2)
+                module_gains[self.network.l1] = np.sqrt(2)
 
             for module, gain in module_gains.items():
                 module.apply(partial(self.init_weights, gain=gain))
