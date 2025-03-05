@@ -23,6 +23,7 @@ from mask_pack.common.torch_layers import (
     CnnMlpNetwork2, 
     CnnMlpNetwork3, 
     CnnMlpNetwork4,
+    TransfromerNetwork1,
 )
 from mask_pack.common.preprocessing import preprocess_obs
 from mask_pack.common.distributions import (
@@ -71,6 +72,7 @@ class CustomActorCriticPolicy(BasePolicy):
         "CnnMlpNetwork2": CnnMlpNetwork2,
         "CnnMlpNetwork3": CnnMlpNetwork3,
         "CnnMlpNetwork4": CnnMlpNetwork4,
+        "TransfromerNetwork1": TransfromerNetwork1,
     }
 
     def __init__(

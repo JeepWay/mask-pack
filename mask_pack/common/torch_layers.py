@@ -4,6 +4,7 @@ import gymnasium as gym
 import torch as th
 from gymnasium import spaces
 from torch import nn
+from torch.nn import functional as F
 import math
 
 class CustomMaxPool(nn.Module):
@@ -217,45 +218,15 @@ class BaseNetwork(nn.Module):
         return mask_probs, action_logits, values
 
     def forward_mask_probs(self, observations: th.Tensor) -> th.Tensor:
-        cnn_f = self.share_extractor(observations)
-        cnn_f = cnn_f.flatten(2).transpose(1, 2)    # torch.Size([N, cW*cH, output_channels])
-
-        if self.position_encode is True:
-            cnn_f = self.positional_encoding(cnn_f)    # torch.Size([N, cW*cH, share_out_channels])
-            
-        attn_output = self.attention(cnn_f, cnn_f, cnn_f)     
-        if self.cnn_shortcut is True:
-            mask_probs = self.mask_net(attn_output + cnn_f)
-        else:
-            mask_probs = self.mask_net(attn_output)    
+        mask_probs, _, _ = self.forward(observations)
         return mask_probs
 
     def forward_action_logits(self, observations: th.Tensor) -> th.Tensor:
-        cnn_f = self.share_extractor(observations)
-        cnn_f = cnn_f.flatten(2).transpose(1, 2)    # torch.Size([N, cW*cH, output_channels])
-        
-        if self.position_encode is True:
-            cnn_f = self.positional_encoding(cnn_f)    # torch.Size([N, cW*cH, share_out_channels])
-            
-        attn_output = self.attention(cnn_f, cnn_f, cnn_f)
-        if self.cnn_shortcut is True:
-            action_logits = self.actor_net(attn_output + cnn_f)
-        else:
-            action_logits = self.actor_net(attn_output) 
+        _, action_logits, _ = self.forward(observations)
         return action_logits
     
     def forward_critic(self, observations: th.Tensor) -> th.Tensor:
-        cnn_f = self.share_extractor(observations)
-        cnn_f = cnn_f.flatten(2).transpose(1, 2)    # torch.Size([N, cW*cH, output_channels])
-        
-        if self.position_encode is True:
-            cnn_f = self.positional_encoding(cnn_f)    # torch.Size([N, cW*cH, share_out_channels])
-            
-        attn_output = self.attention(cnn_f, cnn_f, cnn_f) 
-        if self.cnn_shortcut is True:
-            values = self.critic_net(attn_output + cnn_f)
-        else:    
-            values = self.critic_net(attn_output)      
+        _, _, values = self.forward(observations)
         return values
     
     def _get_n_flatten(self, share_extractor: nn.Sequential, in_channels: int, out_channels: int) -> int:
@@ -271,6 +242,66 @@ class BaseNetwork(nn.Module):
             del tmp_layer, obs_tenosr
         return n_flatten
 
+
+class TransfromerNetwork1(BaseNetwork):
+    def __init__(
+        self, 
+        observation_space, 
+        action_dim, 
+        normalize_images: bool = False, 
+        hidden_dim: int = 100,
+        position_encode: bool = True, 
+        num_layers: int = 2,
+        transformer_kwargs: Optional[Dict[str, Any]] = None,
+    ) -> None:
+        super().__init__(
+            observation_space=observation_space,
+            action_dim=action_dim,
+            hidden_dim=hidden_dim,
+            normalize_images=normalize_images,
+            position_encode=position_encode,
+        )
+        self.l1 = nn.Linear(observation_space.shape[0], transformer_kwargs["d_model"])
+        self.positional_encoding = ImplicitPositionalEncoding(embed_dim=transformer_kwargs["d_model"], max_len=self.action_dim)
+        layer = nn.TransformerEncoderLayer(**transformer_kwargs)
+        self.transformer = nn.TransformerEncoder(
+            encoder_layer=layer,
+            num_layers=num_layers,
+        )
+
+        self.mask_net = nn.Sequential(
+            nn.Linear(transformer_kwargs["d_model"], self.hidden_dim),
+            nn.ReLU(),
+            nn.Linear(self.hidden_dim, self.action_dim),
+            nn.Sigmoid(),
+        )
+
+        self.actor_net = nn.Sequential(
+            nn.Linear(transformer_kwargs["d_model"], self.hidden_dim),
+            nn.ReLU(),
+            nn.Linear(self.hidden_dim, self.action_dim),
+        )
+
+        self.critic_net = nn.Sequential(
+            nn.Linear(transformer_kwargs["d_model"], self.hidden_dim//2),
+            nn.ReLU(),
+            nn.Linear(self.hidden_dim//2, 1),
+        )
+        
+    def forward(self, observations: th.Tensor):
+        x = observations.flatten(2).transpose(1, 2)    # torch.Size([N, 3, W, H]) -> torch.Size([N, W*H, 3])
+        x = self.l1(x)
+        x = F.relu(x)
+        if self.position_encode is True:
+            x = self.positional_encoding(x)         # torch.Size([N, W*H, 256])
+        x = self.transformer(x)                     # torch.Size([N, W*H, 256])
+        x = x.mean(dim=1)                           # torch.Size([N, 256])
+        # x = x.max(dim=1)[0]                       # torch.Size([N, 256])
+        # x = x.view(N, -1)                         # torch.Size([N, W*H*256])
+        mask_probs = self.mask_net(x)               # torch.Size([N, action_dim])
+        action_logits = self.actor_net(x)           # torch.Size([N, action_dim])
+        values = self.critic_net(x)                 # torch.Size([N, 1])
+        return mask_probs, action_logits, values
 
 class CnnAttenMlpNetwork1_v1(BaseNetwork):
     def __init__(
