@@ -5,8 +5,6 @@ import numpy as np
 import torch as th
 from gymnasium import spaces
 from torch.nn import functional as F
-import os
-os.environ['PYTORCH_CUDA_ALLOC_CONF'] = 'expandable_segments:True'
 
 # from stable_baselines3.common.buffers import RolloutBuffer
 # from stable_baselines3.common.on_policy_algorithm import OnPolicyAlgorithm

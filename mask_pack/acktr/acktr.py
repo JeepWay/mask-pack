@@ -6,8 +6,6 @@ import torch as th
 from gymnasium import spaces
 from torch.nn import functional as F
 import os
-os.environ['PYTORCH_CUDA_ALLOC_CONF'] = 'expandable_segments:True'
-th.backends.cuda.preferred_linalg_library("magma")
 
 # from stable_baselines3.common.buffers import RolloutBuffer
 # from stable_baselines3.common.on_policy_algorithm import OnPolicyAlgorithm
@@ -97,6 +95,8 @@ class ACKTR(OnPolicyAlgorithm):
                 spaces.MultiBinary,
             ),
         )
+        os.environ['PYTORCH_CUDA_ALLOC_CONF'] = 'expandable_segments:True'
+        # th.backends.cuda.preferred_linalg_library("magma")
         self.acktr = acktr
         self.eps = eps
         self.alpha = alpha
