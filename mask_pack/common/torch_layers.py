@@ -4,6 +4,7 @@ import gymnasium as gym
 import torch as th
 from gymnasium import spaces
 from torch import nn
+from torch.nn import functional as F
 import math
 
 class CustomMaxPool(nn.Module):
@@ -197,8 +198,15 @@ class BaseNetwork(nn.Module):
         self.actor_extractor: nn.Sequential = None
         self.critic_n_flatten: int = None
         self.critic_extractor: nn.Sequential = None
+        
+        self.l1: nn.Linear = None
+        self.l2: nn.Linear = None
+        self.transformer_encoder: nn.TransformerEncoder = None
+        self.transformer: nn.Transformer = None
 
-    def forward(self, observations: th.Tensor) -> Tuple[th.Tensor, th.Tensor, th.Tensor]:
+    def forward(self, observations: th.Tensor, 
+                interest_mask: th.Tensor = None
+    ) -> Tuple[th.Tensor, th.Tensor, th.Tensor]:
         cnn_f = self.share_extractor(observations)  # [N, share_out_channels, cW, cH]
         cnn_f = cnn_f.flatten(2).transpose(1, 2)    # torch.Size([N, cW*cH, share_out_channels])
 
@@ -216,46 +224,25 @@ class BaseNetwork(nn.Module):
             values = self.critic_net(attn_output)                 # torch.Size([N, 1])
         return mask_probs, action_logits, values
 
-    def forward_mask_probs(self, observations: th.Tensor) -> th.Tensor:
-        cnn_f = self.share_extractor(observations)
-        cnn_f = cnn_f.flatten(2).transpose(1, 2)    # torch.Size([N, cW*cH, output_channels])
-
-        if self.position_encode is True:
-            cnn_f = self.positional_encoding(cnn_f)    # torch.Size([N, cW*cH, share_out_channels])
-            
-        attn_output = self.attention(cnn_f, cnn_f, cnn_f)     
-        if self.cnn_shortcut is True:
-            mask_probs = self.mask_net(attn_output + cnn_f)
-        else:
-            mask_probs = self.mask_net(attn_output)    
+    def forward_mask_probs(self, 
+        observations: th.Tensor, 
+        interest_mask: th.Tensor = None
+    ) -> th.Tensor:
+        mask_probs, _, _ = self.forward(observations, interest_mask)
         return mask_probs
 
-    def forward_action_logits(self, observations: th.Tensor) -> th.Tensor:
-        cnn_f = self.share_extractor(observations)
-        cnn_f = cnn_f.flatten(2).transpose(1, 2)    # torch.Size([N, cW*cH, output_channels])
-        
-        if self.position_encode is True:
-            cnn_f = self.positional_encoding(cnn_f)    # torch.Size([N, cW*cH, share_out_channels])
-            
-        attn_output = self.attention(cnn_f, cnn_f, cnn_f)
-        if self.cnn_shortcut is True:
-            action_logits = self.actor_net(attn_output + cnn_f)
-        else:
-            action_logits = self.actor_net(attn_output) 
+    def forward_action_logits(self, 
+        observations: th.Tensor,
+        interest_mask: th.Tensor = None
+    ) -> th.Tensor:
+        _, action_logits, _ = self.forward(observations, interest_mask)
         return action_logits
     
-    def forward_critic(self, observations: th.Tensor) -> th.Tensor:
-        cnn_f = self.share_extractor(observations)
-        cnn_f = cnn_f.flatten(2).transpose(1, 2)    # torch.Size([N, cW*cH, output_channels])
-        
-        if self.position_encode is True:
-            cnn_f = self.positional_encoding(cnn_f)    # torch.Size([N, cW*cH, share_out_channels])
-            
-        attn_output = self.attention(cnn_f, cnn_f, cnn_f) 
-        if self.cnn_shortcut is True:
-            values = self.critic_net(attn_output + cnn_f)
-        else:    
-            values = self.critic_net(attn_output)      
+    def forward_critic(self, 
+        observations: th.Tensor,
+        interest_mask: th.Tensor = None
+    ) -> th.Tensor:
+        _, _, values = self.forward(observations, interest_mask)
         return values
     
     def _get_n_flatten(self, share_extractor: nn.Sequential, in_channels: int, out_channels: int) -> int:
@@ -272,6 +259,300 @@ class BaseNetwork(nn.Module):
         return n_flatten
 
 
+class TransfromerNetwork1(BaseNetwork):
+    def __init__(
+        self, 
+        observation_space, 
+        action_dim, 
+        normalize_images: bool = False, 
+        hidden_dim: int = 100,
+        position_encode: bool = True, 
+        num_layers: int = 2,
+        use_pad_mask: bool = False,
+        transformer_kwargs: Optional[Dict[str, Any]] = None,
+    ) -> None:
+        super().__init__(
+            observation_space=observation_space,
+            action_dim=action_dim,
+            hidden_dim=hidden_dim,
+            normalize_images=normalize_images,
+            position_encode=position_encode,
+        )
+        self.use_pad_mask = use_pad_mask
+        self.l1 = nn.Linear(observation_space.shape[0], transformer_kwargs["d_model"])
+        self.positional_encoding = ImplicitPositionalEncoding(embed_dim=transformer_kwargs["d_model"], max_len=self.action_dim)
+        layer = nn.TransformerEncoderLayer(**transformer_kwargs)
+        self.transformer_encoder = nn.TransformerEncoder(
+            encoder_layer=layer,
+            num_layers=num_layers,
+        )
+
+        self.mask_net = nn.Sequential(
+            nn.Linear(transformer_kwargs["d_model"], self.hidden_dim),
+            nn.ReLU(),
+            nn.Linear(self.hidden_dim, self.action_dim),
+            nn.Sigmoid(),
+        )
+
+        self.actor_net = nn.Sequential(
+            nn.Linear(transformer_kwargs["d_model"], self.hidden_dim),
+            nn.ReLU(),
+            nn.Linear(self.hidden_dim, self.action_dim),
+        )
+
+        self.critic_net = nn.Sequential(
+            nn.Linear(transformer_kwargs["d_model"], self.hidden_dim//2),
+            nn.ReLU(),
+            nn.Linear(self.hidden_dim//2, 1),
+        )
+        
+    def forward(self, observations: th.Tensor, interest_mask: th.Tensor = None):
+        # src_key_padding_mask = (interest_mask == 0)
+        x = observations.flatten(2).transpose(1, 2)    # torch.Size([N, 3, W, H]) -> torch.Size([N, W*H, 3])
+        x = self.l1(x)
+        x = F.relu(x)
+
+        if self.position_encode is True:
+            x = self.positional_encoding(x)         # torch.Size([N, W*H, d_model])
+
+        if interest_mask is not None:
+            src_key_padding_mask = (interest_mask == 0)
+            # handle the case where all the elements in the mask are zeros, which will make src_key_padding_mask 
+            # all True, leading to NaN output
+            all_zeros = (interest_mask.sum(dim=-1) == 0)
+            src_key_padding_mask = src_key_padding_mask & ~all_zeros.unsqueeze(-1)
+            x = self.transformer_encoder(x, src_key_padding_mask=src_key_padding_mask if self.use_pad_mask else None)
+        else:
+            x = self.transformer_encoder(x)         # torch.Size([N, W*H, d_model])
+
+        x = x.mean(dim=1)                           # torch.Size([N, d_model])
+        mask_probs = self.mask_net(x)               # torch.Size([N, action_dim])
+        action_logits = self.actor_net(x)           # torch.Size([N, action_dim])
+        values = self.critic_net(x)                 # torch.Size([N, 1])
+        return mask_probs, action_logits, values
+
+
+class TransfromerNetwork2(BaseNetwork):
+    def __init__(
+        self, 
+        observation_space, 
+        action_dim, 
+        normalize_images: bool = False, 
+        hidden_dim: int = 100,
+        position_encode: bool = True, 
+        num_layers: int = 2,
+        use_pad_mask: bool = False,
+        transformer_kwargs: Optional[Dict[str, Any]] = None,
+    ) -> None:
+        super().__init__(
+            observation_space=observation_space,
+            action_dim=action_dim,
+            hidden_dim=hidden_dim,
+            normalize_images=normalize_images,
+            position_encode=position_encode,
+        )
+        self.use_pad_mask = use_pad_mask
+        self.l1 = nn.Linear(observation_space.shape[0], transformer_kwargs["d_model"])
+        self.positional_encoding = ImplicitPositionalEncoding(embed_dim=transformer_kwargs["d_model"], max_len=self.action_dim)
+        layer = nn.TransformerEncoderLayer(**transformer_kwargs)
+        self.transformer_encoder = nn.TransformerEncoder(
+            encoder_layer=layer,
+            num_layers=num_layers,
+        )
+
+        self.mask_net = nn.Sequential(
+            nn.Linear(self.action_dim, self.hidden_dim),
+            nn.ReLU(),
+            nn.Linear(self.hidden_dim, self.action_dim),
+            nn.Sigmoid(),
+        )
+
+        self.actor_net = nn.Sequential(
+            nn.Linear(self.action_dim, self.hidden_dim),
+            nn.ReLU(),
+            nn.Linear(self.hidden_dim, self.action_dim),
+        )
+
+        self.critic_net = nn.Sequential(
+            nn.Linear(self.action_dim, self.hidden_dim//2),
+            nn.ReLU(),
+            nn.Linear(self.hidden_dim//2, 1),
+        )
+        
+    def forward(self, observations: th.Tensor, interest_mask: th.Tensor = None):
+        # src_key_padding_mask = (interest_mask == 0)
+        x = observations.flatten(2).transpose(1, 2)    # torch.Size([N, 3, W, H]) -> torch.Size([N, W*H, 3])
+        x = self.l1(x)
+        x = F.relu(x)
+
+        if self.position_encode is True:
+            x = self.positional_encoding(x)         # torch.Size([N, W*H, d_model])
+
+        if interest_mask is not None:
+            src_key_padding_mask = (interest_mask == 0)
+            # handle the case where all the elements in the mask are zeros, which will make src_key_padding_mask 
+            # all True, leading to NaN output
+            all_zeros = (interest_mask.sum(dim=-1) == 0)
+            src_key_padding_mask = src_key_padding_mask & ~all_zeros.unsqueeze(-1)
+            x = self.transformer_encoder(x, src_key_padding_mask=src_key_padding_mask if self.use_pad_mask else None)
+        else:
+            x = self.transformer_encoder(x)         # torch.Size([N, W*H, d_model])
+
+        x = x.mean(dim=-1)                          # torch.Size([N, W*H])
+        mask_probs = self.mask_net(x)               # torch.Size([N, action_dim])
+        action_logits = self.actor_net(x)           # torch.Size([N, action_dim])
+        values = self.critic_net(x)                 # torch.Size([N, 1])
+        return mask_probs, action_logits, values
+    
+    
+class TransfromerNetwork3(BaseNetwork):
+    def __init__(
+        self, 
+        observation_space, 
+        action_dim, 
+        normalize_images: bool = False, 
+        hidden_dim: int = 100,
+        position_encode: bool = True,
+        use_pad_mask: bool = False,
+        transformer_kwargs: Optional[Dict[str, Any]] = None,
+    ) -> None:
+        super().__init__(
+            observation_space=observation_space,
+            action_dim=action_dim,
+            hidden_dim=hidden_dim,
+            normalize_images=normalize_images,
+            position_encode=position_encode,
+        )
+        self.use_pad_mask = use_pad_mask
+        self.l1 = nn.Linear(observation_space.shape[0], transformer_kwargs["d_model"])
+        self.l2 = nn.Linear(1, transformer_kwargs["d_model"])
+        self.positional_encoding = ImplicitPositionalEncoding(embed_dim=transformer_kwargs["d_model"], max_len=self.action_dim)
+        self.transformer = nn.Transformer(**transformer_kwargs)
+
+        self.mask_net = nn.Sequential(
+            nn.Linear(transformer_kwargs["d_model"], self.hidden_dim),
+            nn.ReLU(),
+            nn.Linear(self.hidden_dim, self.action_dim),
+            nn.Sigmoid(),
+        )
+
+        self.actor_net = nn.Sequential(
+            nn.Linear(transformer_kwargs["d_model"], self.hidden_dim),
+            nn.ReLU(),
+            nn.Linear(self.hidden_dim, self.action_dim),
+        )
+
+        self.critic_net = nn.Sequential(
+            nn.Linear(transformer_kwargs["d_model"], self.hidden_dim//2),
+            nn.ReLU(),
+            nn.Linear(self.hidden_dim//2, 1),
+        )
+        
+    def forward(self, observations: th.Tensor, interest_mask: th.Tensor):
+        assert(interest_mask.shape[1] == self.action_dim, "interest_mask's shape[1] must be equal to action_dim")
+        x = observations.flatten(2).transpose(1, 2) # torch.Size([N, 3, W, H]) -> torch.Size([N, W*H, 3])
+        x = self.l1(x)
+        x = F.relu(x)
+        y = interest_mask.unsqueeze(-1)             # torch.Size([N, W*H, 1])
+        y = self.l2(y)
+        y = F.relu(y)
+
+        if self.position_encode is True:
+            x = self.positional_encoding(x)         # torch.Size([N, W*H, d_model])
+            y = self.positional_encoding(y)         # torch.Size([N, W*H, d_model])
+
+        src_key_padding_mask = (interest_mask == 0)
+        # handle the case where all the elements in the mask are zeros, which will make src_key_padding_mask 
+        # all True, leading to NaN output
+        all_zeros = (interest_mask.sum(dim=-1) == 0)
+        src_key_padding_mask = src_key_padding_mask & ~all_zeros.unsqueeze(-1)
+        output = self.transformer(
+            x, 
+            y, 
+            src_key_padding_mask=src_key_padding_mask if self.use_pad_mask else None
+        )   # torch.Size([N, W*H, d_model])
+         
+        output = output.mean(dim=1)                 # torch.Size([N, d_model])
+        mask_probs = self.mask_net(output)          # torch.Size([N, action_dim])
+        action_logits = self.actor_net(output)      # torch.Size([N, action_dim])
+        values = self.critic_net(output)            # torch.Size([N, 1])
+        return mask_probs, action_logits, values
+    
+
+class TransfromerNetwork4(BaseNetwork):
+    def __init__(
+        self, 
+        observation_space, 
+        action_dim, 
+        normalize_images: bool = False, 
+        hidden_dim: int = 100,
+        position_encode: bool = True, 
+        use_pad_mask: bool = False,
+        transformer_kwargs: Optional[Dict[str, Any]] = None,
+    ) -> None:
+        super().__init__(
+            observation_space=observation_space,
+            action_dim=action_dim,
+            hidden_dim=hidden_dim,
+            normalize_images=normalize_images,
+            position_encode=position_encode,
+        )
+        self.use_pad_mask = use_pad_mask
+        self.l1 = nn.Linear(observation_space.shape[0], transformer_kwargs["d_model"])
+        self.l2 = nn.Linear(1, transformer_kwargs["d_model"])
+        self.positional_encoding = ImplicitPositionalEncoding(embed_dim=transformer_kwargs["d_model"], max_len=self.action_dim)
+        self.transformer = nn.Transformer(**transformer_kwargs)
+
+        self.mask_net = nn.Sequential(
+            nn.Linear(self.action_dim, self.hidden_dim),
+            nn.ReLU(),
+            nn.Linear(self.hidden_dim, self.action_dim),
+            nn.Sigmoid(),
+        )
+
+        self.actor_net = nn.Sequential(
+            nn.Linear(self.action_dim, self.hidden_dim),
+            nn.ReLU(),
+            nn.Linear(self.hidden_dim, self.action_dim),
+        )
+
+        self.critic_net = nn.Sequential(
+            nn.Linear(self.action_dim, self.hidden_dim//2),
+            nn.ReLU(),
+            nn.Linear(self.hidden_dim//2, 1),
+        )
+        
+    def forward(self, observations: th.Tensor, interest_mask: th.Tensor):
+        assert(interest_mask.shape[1] == self.action_dim, "interest_mask's shape[1] must be equal to action_dim")
+        x = observations.flatten(2).transpose(1, 2) # torch.Size([N, 3, W, H]) -> torch.Size([N, W*H, 3])
+        x = self.l1(x)
+        x = F.relu(x)
+        y = interest_mask.unsqueeze(-1)             # torch.Size([N, W*H, 1])
+        y = self.l2(y)
+        y = F.relu(y)
+
+        if self.position_encode is True:
+            x = self.positional_encoding(x)         # torch.Size([N, W*H, d_model])
+            y = self.positional_encoding(y)         # torch.Size([N, W*H, d_model])
+
+        src_key_padding_mask = (interest_mask == 0)
+        # handle the case where all the elements in the mask are zeros, which will make src_key_padding_mask 
+        # all True, leading to NaN output
+        all_zeros = (interest_mask.sum(dim=-1) == 0)
+        src_key_padding_mask = src_key_padding_mask & ~all_zeros.unsqueeze(-1)
+        output = self.transformer(
+            x, 
+            y, 
+            src_key_padding_mask=src_key_padding_mask if self.use_pad_mask else None
+        )   # torch.Size([N, W*H, d_model])
+
+        output = output.mean(dim=-1)                # torch.Size([N, W*H])
+        mask_probs = self.mask_net(output)          # torch.Size([N, action_dim])
+        action_logits = self.actor_net(output)      # torch.Size([N, action_dim])
+        values = self.critic_net(output)            # torch.Size([N, 1])
+        return mask_probs, action_logits, values
+    
+    
 class CnnAttenMlpNetwork1_v1(BaseNetwork):
     def __init__(
         self,

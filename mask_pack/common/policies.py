@@ -23,6 +23,10 @@ from mask_pack.common.torch_layers import (
     CnnMlpNetwork2, 
     CnnMlpNetwork3, 
     CnnMlpNetwork4,
+    TransfromerNetwork1,
+    TransfromerNetwork2,
+    TransfromerNetwork3,
+    TransfromerNetwork4,
 )
 from mask_pack.common.preprocessing import preprocess_obs
 from mask_pack.common.distributions import (
@@ -71,6 +75,10 @@ class CustomActorCriticPolicy(BasePolicy):
         "CnnMlpNetwork2": CnnMlpNetwork2,
         "CnnMlpNetwork3": CnnMlpNetwork3,
         "CnnMlpNetwork4": CnnMlpNetwork4,
+        "TransfromerNetwork1": TransfromerNetwork1,
+        "TransfromerNetwork2": TransfromerNetwork2,
+        "TransfromerNetwork3": TransfromerNetwork3,
+        "TransfromerNetwork4": TransfromerNetwork4,
     }
 
     def __init__(
@@ -196,18 +204,31 @@ class CustomActorCriticPolicy(BasePolicy):
             # features_extractor/mlp values are
             # originally from openai/baselines (default gains/init_scales).
             module_gains = {
-                self.network.share_extractor: np.sqrt(2),
-                self.network.mask_net: 0.01,
                 self.network.actor_net: 0.01,
                 self.network.critic_net: 1,
             }
+            if self.network.share_extractor is not None:
+                module_gains[self.network.share_extractor] = np.sqrt(2)
+
+            if self.network.mask_net is not None:
+                module_gains[self.network.mask_net] = 0.01
+
             if self.network.attention is not None:
                 module_gains[self.network.attention] = np.sqrt(2)
-                
+
             if self.network.mask_extractor is not None:
                 module_gains[self.network.mask_extractor] = np.sqrt(2)
                 module_gains[self.network.actor_extractor] = np.sqrt(2)
                 module_gains[self.network.critic_extractor] = np.sqrt(2)
+
+            if self.network.transformer_encoder is not None:
+                module_gains[self.network.transformer_encoder] = np.sqrt(2)
+                module_gains[self.network.l1] = np.sqrt(2)
+                
+            if self.network.transformer is not None:
+                module_gains[self.network.transformer] = np.sqrt(2)
+                module_gains[self.network.l1] = np.sqrt(2)
+                module_gains[self.network.l2] = np.sqrt(2)
 
             for module, gain in module_gains.items():
                 module.apply(partial(self.init_weights, gain=gain))
@@ -244,12 +265,18 @@ class CustomActorCriticPolicy(BasePolicy):
         :return: action, value, log probability of the action and predicted mask probabilities
         """
         obs = preprocess_obs(obs, self.observation_space, normalize_images=self.normalize_images)
-        mask_probs, action_logits, values = self.network(obs[BIN])
+        mask_probs, action_logits, values = self.network(obs[BIN], obs[MASK])
         pred_mask = self.binary(mask_probs)
+        
         if self.mask_type == "truth":
             distribution = self._get_action_dist_from_latent(action_logits, obs[MASK])
         elif self.mask_type == "predict":
             distribution = self._get_action_dist_from_latent(action_logits, pred_mask)
+        elif self.mask_type == "none":
+            distribution = self._get_action_dist_from_latent(action_logits, None)
+        else:
+            raise ValueError("Unknown mask type")
+
         actions = distribution.get_actions(deterministic=deterministic)
         log_probs = distribution.log_prob(actions)
         actions = actions.reshape((-1, *self.action_space.shape))
@@ -309,12 +336,17 @@ class CustomActorCriticPolicy(BasePolicy):
         :return: Taken action according to the policy
         """
         obs = preprocess_obs(observation, self.observation_space, normalize_images=self.normalize_images)
-        mask_probs, action_logits, values = self.network(obs[BIN])
+        mask_probs, action_logits, values = self.network(obs[BIN], obs[MASK])
         pred_mask = self.binary(mask_probs)
+
         if self.mask_type == "truth":
             distribution = self._get_action_dist_from_latent(action_logits, obs[MASK])
         elif self.mask_type == "predict":
             distribution = self._get_action_dist_from_latent(action_logits, pred_mask)
+        elif self.mask_type == "none":
+            distribution = self._get_action_dist_from_latent(action_logits, None)
+        else:
+            raise ValueError("Unknown mask type")
         return distribution.get_actions(deterministic=deterministic)
 
     def evaluate_actions(self, obs: PyTorchObs, actions: th.Tensor) -> Tuple[th.Tensor, th.Tensor, Optional[th.Tensor]]:
@@ -328,7 +360,7 @@ class CustomActorCriticPolicy(BasePolicy):
             , entropy of the action distribution and the probability of invalid actions.
         """
         obs = preprocess_obs(obs, self.observation_space, normalize_images=self.normalize_images)
-        mask_probs, action_logits, values = self.network(obs[BIN])
+        mask_probs, action_logits, values = self.network(obs[BIN], obs[MASK])
         pred_mask = self.binary(mask_probs)
 
         if self.action_dist.update_actor_stratrgy == "naive":
@@ -338,6 +370,12 @@ class CustomActorCriticPolicy(BasePolicy):
                 distribution = self._get_action_dist_from_latent(action_logits, obs[MASK])
             elif self.mask_type == "predict":
                 distribution = self._get_action_dist_from_latent(action_logits, pred_mask)
+            elif self.mask_type == "none":
+                distribution = self._get_action_dist_from_latent(action_logits, None)
+            else:
+                raise ValueError("Unknown mask type")
+        else:
+            raise ValueError("Unknown update actor strategy")
         log_prob = distribution.log_prob(actions)
 
         if self.action_dist.entropy_strategy == "naive":
@@ -347,6 +385,12 @@ class CustomActorCriticPolicy(BasePolicy):
                 distribution = self._get_action_dist_from_latent(action_logits, obs[MASK])
             elif self.mask_type == "predict":
                 distribution = self._get_action_dist_from_latent(action_logits, pred_mask)
+            elif self.mask_type == "none":
+                distribution = self._get_action_dist_from_latent(action_logits, None)
+            else:
+                raise ValueError("Unknown mask type")
+        else:
+            raise ValueError("Unknown entropy strategy")
         entropy = distribution.entropy()
 
         if self.action_dist.invalid_probs_strategy == "naive":
@@ -356,6 +400,12 @@ class CustomActorCriticPolicy(BasePolicy):
                 distribution = self._get_action_dist_from_latent(action_logits, obs[MASK])
             elif self.mask_type == "predict":
                 distribution = self._get_action_dist_from_latent(action_logits, pred_mask)
+            elif self.mask_type == "none":
+                distribution = self._get_action_dist_from_latent(action_logits, None)
+            else:
+                raise ValueError("Unknown mask type")
+        else:
+            raise ValueError("Unknown invalid probs strategy")
         invalid_probs = (distribution.distribution.probs * (1 - obs[MASK])).sum(dim=-1)
 
         return values, log_prob, entropy, invalid_probs
@@ -367,8 +417,8 @@ class CustomActorCriticPolicy(BasePolicy):
         :param obs: Observation
         :return: the estimated values.
         """
-        obs = preprocess_obs(obs[BIN], self.observation_space[BIN], normalize_images=self.normalize_images)
-        return self.network.forward_critic(obs)
+        obs = preprocess_obs(obs, self.observation_space, normalize_images=self.normalize_images)
+        return self.network.forward_critic(obs[BIN], obs[MASK])
     
     def predict_masks(self, obs: PyTorchObs) -> th.Tensor:
         """
@@ -377,8 +427,7 @@ class CustomActorCriticPolicy(BasePolicy):
         :param obs: Observation
         :return: the estimated mask probabilities.
         """
-        obs = preprocess_obs(obs[BIN], self.observation_space[BIN], normalize_images=self.normalize_images)
-        return self.network.forward_mask_probs(obs)
-    
+        obs = preprocess_obs(obs, self.observation_space, normalize_images=self.normalize_images)
+        return self.network.forward_mask_probs(obs[BIN], obs[MASK])
 
 
