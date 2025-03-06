@@ -8,7 +8,8 @@ log_dir: logs/ppo
 env_kwargs:
   render_mode: human
   bin_channels: 3
-  items_per_bin: 25
+  min_items_per_bin: 20
+  max_items_per_bin: 30
   area_reward_coef: 0.4
   constant_penalty: -5.0
   action_fail: continue

@@ -19,9 +19,19 @@ monitor_kwargs:
   - PE
 policy_kwargs: &id001
   normalize_images: false
-  network: CnnMlpNetwork3
+  network: TransfromerNetwork1
   network_kwargs:
     hidden_dim: 1600
+    position_encode: true
+    use_pad_mask: true
+    num_layers: 1
+    transformer_kwargs:
+      d_model: 128
+      nhead: 4
+      dim_feedforward: 512
+      dropout: 0.0
+      batch_first: true
+      norm_first: false
   dist_kwargs:
     mask_strategy: replace
     mask_minus_coef: 15
