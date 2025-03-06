@@ -202,7 +202,9 @@ class BaseNetwork(nn.Module):
         self.l1: nn.Linear = None
         self.transformer: nn.TransformerEncoder = None
 
-    def forward(self, observations: th.Tensor) -> Tuple[th.Tensor, th.Tensor, th.Tensor]:
+    def forward(self, observations: th.Tensor, 
+                interest_mask: th.Tensor = None
+    ) -> Tuple[th.Tensor, th.Tensor, th.Tensor]:
         cnn_f = self.share_extractor(observations)  # [N, share_out_channels, cW, cH]
         cnn_f = cnn_f.flatten(2).transpose(1, 2)    # torch.Size([N, cW*cH, share_out_channels])
 
@@ -220,16 +222,25 @@ class BaseNetwork(nn.Module):
             values = self.critic_net(attn_output)                 # torch.Size([N, 1])
         return mask_probs, action_logits, values
 
-    def forward_mask_probs(self, observations: th.Tensor) -> th.Tensor:
-        mask_probs, _, _ = self.forward(observations)
+    def forward_mask_probs(self, 
+        observations: th.Tensor, 
+        interest_mask: th.Tensor = None
+    ) -> th.Tensor:
+        mask_probs, _, _ = self.forward(observations, interest_mask)
         return mask_probs
 
-    def forward_action_logits(self, observations: th.Tensor) -> th.Tensor:
-        _, action_logits, _ = self.forward(observations)
+    def forward_action_logits(self, 
+        observations: th.Tensor,
+        interest_mask: th.Tensor = None
+    ) -> th.Tensor:
+        _, action_logits, _ = self.forward(observations, interest_mask)
         return action_logits
     
-    def forward_critic(self, observations: th.Tensor) -> th.Tensor:
-        _, _, values = self.forward(observations)
+    def forward_critic(self, 
+        observations: th.Tensor,
+        interest_mask: th.Tensor = None
+    ) -> th.Tensor:
+        _, _, values = self.forward(observations, interest_mask)
         return values
     
     def _get_n_flatten(self, share_extractor: nn.Sequential, in_channels: int, out_channels: int) -> int:
