@@ -26,7 +26,8 @@ class BppEnv(gym.Env):
         bin_w: int = 5, 
         bin_h: int = 5, 
         bin_channels: int = 3,
-        items_per_bin: int = 12, 
+        min_items_per_bin: int = 10,
+        max_items_per_bin: int = 15,
         area_reward_coef: float = 0.4,
         constant_penalty: float = -5.0,
         action_fail: str = "continue",
@@ -36,7 +37,8 @@ class BppEnv(gym.Env):
         self.bin_w = bin_w
         self.bin_h = bin_h
         self.bin_channels = bin_channels
-        self.items_per_bin = items_per_bin
+        self.min_items_per_bin = min_items_per_bin
+        self.max_items_per_bin = max_items_per_bin
         self.action_dim = bin_w * bin_h
         self.action_space = spaces.Discrete(bin_w * bin_h)
         self.observation_space = spaces.Dict({
@@ -45,7 +47,12 @@ class BppEnv(gym.Env):
                               shape=(self.bin_channels, bin_w, bin_h), dtype=np.uint8),                        
         })
         self.bin = Bin(width=bin_w, height=bin_h)
-        self.items_creator = ItemsCreator(bin_w=bin_w, bin_h=bin_h, items_per_bin=items_per_bin)
+        self.items_creator = ItemsCreator(
+            bin_w=bin_w, 
+            bin_h=bin_h, 
+            min_items_per_bin=min_items_per_bin,
+            max_items_per_bin=max_items_per_bin,
+        )
         
         self.area_reward_coef = area_reward_coef
         self.constant_penalty = constant_penalty

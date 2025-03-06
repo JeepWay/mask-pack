@@ -10,9 +10,10 @@ __all__ = ["ItemsCreator"]
 class ItemsCreator(object):
     def __init__(
         self, 
-        bin_w: int = 5, 
-        bin_h: int = 5, 
-        items_per_bin: int = 12,
+        bin_w: int = 10, 
+        bin_h: int = 10, 
+        min_items_per_bin: int = 10,
+        max_items_per_bin: int = 20,
     ):
         """
         A item creator object to generate items list for the BPP environment.\n
@@ -29,7 +30,9 @@ class ItemsCreator(object):
         """
         self.bin_w = bin_w
         self.bin_h = bin_h
-        self.items_per_bin = items_per_bin
+        self.min_items_per_bin = min_items_per_bin
+        self.max_items_per_bin = max_items_per_bin
+        self.items_per_bin = None
         self.items_list: List[Tuple[int, int]] = []
 
     def reset(
@@ -46,6 +49,7 @@ class ItemsCreator(object):
         """
         assert np_random is not None, "The `np_random` should not be ."
         self.items_list.clear()
+        self.items_per_bin = np_random.integers(self.min_items_per_bin, self.max_items_per_bin + 1)
         self.items_list = self._generate_items_list(np_random=np_random)
 
     def preview(self, length: int = 1) -> List[Tuple[int, int]]:
