@@ -736,7 +736,7 @@ class CnnAttenMlpNetwork1_v3(BaseNetwork):
             nn.Linear(self.hidden_dim//2, 1),
         )
         
-    def forward(self, observations: th.Tensor) -> Tuple[th.Tensor, th.Tensor, th.Tensor]:
+    def forward(self, observations: th.Tensor, interest_mask: th.Tensor = None) -> Tuple[th.Tensor, th.Tensor, th.Tensor]:
         cnn_f = self.share_extractor(observations)  # [N, share_out_channels, cW, cH]
         cnn_f = cnn_f.flatten(2).transpose(1, 2)    # torch.Size([N, cW*cH, share_out_channels])
 
@@ -754,7 +754,7 @@ class CnnAttenMlpNetwork1_v3(BaseNetwork):
             values = self.critic_net(self.layer_norm(attn_output))                 # torch.Size([N, 1])
         return mask_probs, action_logits, values
 
-    def forward_mask_probs(self, observations: th.Tensor) -> th.Tensor:
+    def forward_mask_probs(self, observations: th.Tensor, interest_mask: th.Tensor = None) -> th.Tensor:
         cnn_f = self.share_extractor(observations)
         cnn_f = cnn_f.flatten(2).transpose(1, 2)    # torch.Size([N, cW*cH, output_channels])
         
@@ -768,7 +768,7 @@ class CnnAttenMlpNetwork1_v3(BaseNetwork):
             mask_probs = self.mask_net(attn_output)    
         return mask_probs
 
-    def forward_action_logits(self, observations: th.Tensor) -> th.Tensor:
+    def forward_action_logits(self, observations: th.Tensor, interest_mask: th.Tensor = None) -> th.Tensor:
         cnn_f = self.share_extractor(observations)
         cnn_f = cnn_f.flatten(2).transpose(1, 2)    # torch.Size([N, cW*cH, output_channels])
         
@@ -782,7 +782,7 @@ class CnnAttenMlpNetwork1_v3(BaseNetwork):
             action_logits = self.actor_net(attn_output) 
         return action_logits
     
-    def forward_critic(self, observations: th.Tensor) -> th.Tensor:
+    def forward_critic(self, observations: th.Tensor, interest_mask: th.Tensor = None) -> th.Tensor:
         cnn_f = self.share_extractor(observations)
         cnn_f = cnn_f.flatten(2).transpose(1, 2)    # torch.Size([N, cW*cH, output_channels])
         
@@ -875,7 +875,7 @@ class CnnMlpNetwork1(BaseNetwork):
             (nn.Linear(self.hidden_dim//2, 1))
         )
 
-    def forward(self, observations: th.Tensor) -> Tuple[th.Tensor, th.Tensor, th.Tensor]:
+    def forward(self, observations: th.Tensor, interest_mask: th.Tensor = None) -> Tuple[th.Tensor, th.Tensor, th.Tensor]:
         share_features = self.share_extractor(observations)
 
         latent_mk = self.mask_extractor(share_features)
@@ -888,22 +888,17 @@ class CnnMlpNetwork1(BaseNetwork):
         values = self.critic_net(latent_vf)
         return mask_probs, action_logits, values
 
-    def forward_action_logits(self, observations: th.Tensor) -> th.Tensor:
+    def forward_action_logits(self, observations: th.Tensor, interest_mask: th.Tensor = None) -> th.Tensor:
         share_features = self.share_extractor(observations)
         latent_pi = self.actor_extractor(share_features)
         return self.actor_net(latent_pi)
     
-    def forward_mask_probs(self, observations: th.Tensor) -> th.Tensor:
+    def forward_mask_probs(self, observations: th.Tensor, interest_mask: th.Tensor = None) -> th.Tensor:
         share_features = self.share_extractor(observations)
         latent_mk = self.mask_extractor(share_features)
         return self.mask_net(latent_mk)
-
-    def forward_action_logits(self, observations: th.Tensor) -> th.Tensor:
-        share_features = self.share_extractor(observations)
-        latent_pi = self.actor_extractor(share_features)
-        return self.actor_net(latent_pi)
     
-    def forward_critic(self, observations: th.Tensor) -> th.Tensor:
+    def forward_critic(self, observations: th.Tensor, interest_mask: th.Tensor = None) -> th.Tensor:
         share_features = self.share_extractor(observations)
         latent_vf = self.critic_extractor(share_features)
         return self.critic_net(latent_vf)
@@ -986,7 +981,7 @@ class CnnMlpNetwork2(BaseNetwork):
             (nn.Linear(self.hidden_dim//2, 1))
         )
 
-    def forward(self, observations: th.Tensor) -> Tuple[th.Tensor, th.Tensor, th.Tensor]:
+    def forward(self, observations: th.Tensor, interest_mask: th.Tensor = None) -> Tuple[th.Tensor, th.Tensor, th.Tensor]:
         share_features = self.share_extractor(observations)
 
         latent_mk = self.mask_extractor(share_features)
@@ -999,22 +994,17 @@ class CnnMlpNetwork2(BaseNetwork):
         values = self.critic_net(latent_vf)
         return mask_probs, action_logits, values
 
-    def forward_action_logits(self, observations: th.Tensor) -> th.Tensor:
+    def forward_action_logits(self, observations: th.Tensor, interest_mask: th.Tensor = None) -> th.Tensor:
         share_features = self.share_extractor(observations)
         latent_pi = self.actor_extractor(share_features)
         return self.actor_net(latent_pi)
     
-    def forward_mask_probs(self, observations: th.Tensor) -> th.Tensor:
+    def forward_mask_probs(self, observations: th.Tensor, interest_mask: th.Tensor = None) -> th.Tensor:
         share_features = self.share_extractor(observations)
         latent_mk = self.mask_extractor(share_features)
         return self.mask_net(latent_mk)
-
-    def forward_action_logits(self, observations: th.Tensor) -> th.Tensor:
-        share_features = self.share_extractor(observations)
-        latent_pi = self.actor_extractor(share_features)
-        return self.actor_net(latent_pi)
     
-    def forward_critic(self, observations: th.Tensor) -> th.Tensor:
+    def forward_critic(self, observations: th.Tensor, interest_mask: th.Tensor = None) -> th.Tensor:
         share_features = self.share_extractor(observations)
         latent_vf = self.critic_extractor(share_features)
         return self.critic_net(latent_vf)
@@ -1097,7 +1087,7 @@ class CnnMlpNetwork3(BaseNetwork):
             (nn.Linear(self.hidden_dim//2, 1))
         )
 
-    def forward(self, observations: th.Tensor) -> Tuple[th.Tensor, th.Tensor, th.Tensor]:
+    def forward(self, observations: th.Tensor, interest_mask: th.Tensor = None) -> Tuple[th.Tensor, th.Tensor, th.Tensor]:
         share_features = self.share_extractor(observations)
 
         latent_mk = self.mask_extractor(share_features)
@@ -1110,22 +1100,17 @@ class CnnMlpNetwork3(BaseNetwork):
         values = self.critic_net(latent_vf)
         return mask_probs, action_logits, values
 
-    def forward_action_logits(self, observations: th.Tensor) -> th.Tensor:
+    def forward_action_logits(self, observations: th.Tensor, interest_mask: th.Tensor = None) -> th.Tensor:
         share_features = self.share_extractor(observations)
         latent_pi = self.actor_extractor(share_features)
         return self.actor_net(latent_pi)
     
-    def forward_mask_probs(self, observations: th.Tensor) -> th.Tensor:
+    def forward_mask_probs(self, observations: th.Tensor, interest_mask: th.Tensor = None) -> th.Tensor:
         share_features = self.share_extractor(observations)
         latent_mk = self.mask_extractor(share_features)
         return self.mask_net(latent_mk)
-
-    def forward_action_logits(self, observations: th.Tensor) -> th.Tensor:
-        share_features = self.share_extractor(observations)
-        latent_pi = self.actor_extractor(share_features)
-        return self.actor_net(latent_pi)
     
-    def forward_critic(self, observations: th.Tensor) -> th.Tensor:
+    def forward_critic(self, observations: th.Tensor, interest_mask: th.Tensor = None) -> th.Tensor:
         share_features = self.share_extractor(observations)
         latent_vf = self.critic_extractor(share_features)
         return self.critic_net(latent_vf)
@@ -1208,7 +1193,7 @@ class CnnMlpNetwork4(BaseNetwork):
             (nn.Linear(self.hidden_dim//2, 1))
         )
 
-    def forward(self, observations: th.Tensor) -> Tuple[th.Tensor, th.Tensor, th.Tensor]:
+    def forward(self, observations: th.Tensor, interest_mask: th.Tensor = None) -> Tuple[th.Tensor, th.Tensor, th.Tensor]:
         share_features = self.share_extractor(observations)
 
         latent_mk = self.mask_extractor(share_features)
@@ -1221,22 +1206,17 @@ class CnnMlpNetwork4(BaseNetwork):
         values = self.critic_net(latent_vf)
         return mask_probs, action_logits, values
 
-    def forward_action_logits(self, observations: th.Tensor) -> th.Tensor:
+    def forward_action_logits(self, observations: th.Tensor, interest_mask: th.Tensor = None) -> th.Tensor:
         share_features = self.share_extractor(observations)
         latent_pi = self.actor_extractor(share_features)
         return self.actor_net(latent_pi)
     
-    def forward_mask_probs(self, observations: th.Tensor) -> th.Tensor:
+    def forward_mask_probs(self, observations: th.Tensor, interest_mask: th.Tensor = None) -> th.Tensor:
         share_features = self.share_extractor(observations)
         latent_mk = self.mask_extractor(share_features)
         return self.mask_net(latent_mk)
-
-    def forward_action_logits(self, observations: th.Tensor) -> th.Tensor:
-        share_features = self.share_extractor(observations)
-        latent_pi = self.actor_extractor(share_features)
-        return self.actor_net(latent_pi)
     
-    def forward_critic(self, observations: th.Tensor) -> th.Tensor:
+    def forward_critic(self, observations: th.Tensor, interest_mask: th.Tensor = None) -> th.Tensor:
         share_features = self.share_extractor(observations)
         latent_vf = self.critic_extractor(share_features)
         return self.critic_net(latent_vf)
